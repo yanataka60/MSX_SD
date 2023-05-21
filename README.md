@@ -3,74 +3,29 @@
 ![TITLE](https://github.com/yanataka60/MSX_SD/blob/main/JPEG/TITLE1.jpg)
 ![TITLE2](https://github.com/yanataka60/MSX_SD/blob/main/JPEG/TITLE2.jpg)
 
-　FM-8、FM-7、FM-77シリーズでSD-CARDからロード、セーブ機能を実現するものです。
+　MSX、MSX2、MSX2+、MSXturboRでSD-CARDからロード、セーブ機能を実現するものです。
 
-　対応できるBASICのバージョンは、FM-8はF-BASICV1.0(ROM-BASIC、DISK-VERSIONとも)、FM-7以降はF-BASICV3.0(ROM-BASIC、DISK-VERSIONとも)です。
+　ROM-BASIC、DISK-BASICのどちらからも使えますが、DISK-BASICのフリーエリアでは動かないカセット用プログラム(ゲーム)もあります。
 
-　対応機種はFM-8からFM-77AV40SXまで全てのFMシリーズとなりますが、基板のRevsionにより対応範囲が異なります。
-
-　Rev1.1とRev2.0の違いはコネクタのみです。
-
-　Rev1.1はFM-7、FM-NEW7なら50Pinフラットケーブルで接続できますが、FM-77以降は外部拡張インタフェースの仕様が変更となっており、アンフェノール フルピッチへ変換するケーブルの自作が必要です。
-
-　Rev2.0は32Pin拡張スロット仕様でFM-7以降全ての機種に接続できますが、純正の32Pinコネクタ(FCN-365P032-AU)は製造が終了してしまったため入手困難です。手持ちにある方は利用できますが、無い方はOMRON XC5A-3282-1が代替品として使えますが、加工が必要です。
-
-　FM-8に繋げることが出来るのはRev3.0のみです。また、Rev3.0はFM-8、FM-7、FM-NEW7なら50Pinフラットケーブルで接続できますが、FM-77は外部拡張インタフェースの仕様が変更となっており、アンフェノール フルピッチへ変換するケーブルの自作が必要です。
-
-|Revsion|対応機種|基板側コネクタ|本体側コネクタ|備考|
-| ------------ | ------------ | ------------ | ------------ | ------------ |
-|Rev1.1|FM-7、FM-NEW7|フラットケーブルコネクタ 50ピン|同左||
-|Rev1.1|FM-77|フラットケーブルコネクタ 50ピン|アンフェノール フルピッチ50Pin|ケーブルの自作が必要|
-|Rev1.1|FM-77AV|フラットケーブルコネクタ 50ピン|アンフェノール フルピッチ36Pin|ケーブルの自作が必要|
-|Rev1.1|FM-77AV20以降|フラットケーブルコネクタ 50ピン|アンフェノール フルピッチ50Pin|ケーブルの自作が必要|
-|Rev2.0|FM-7以降のすべて|32Pin拡張スロット||コネクタの加工が必要|
-|Rev3.0|FM-8、FM-7、FM-NEW7|フラットケーブルコネクタ 50ピン|同左||
-|Rev3.0|FM-77|フラットケーブルコネクタ 50ピン|アンフェノール フルピッチ50Pin|ケーブルの自作が必要|
-
-### FM-8、FM-7、FM-77で使うときはBOOT-ROMの差替え有無を選択します。FM-77以降はFDD標準搭載なのでFDからFM-7_SD初期設定プログラムを走らせるものとしています。
-
-　　1)BOOT-ROMを差し替える
-
-　　2)BOOT-ROMを差し替えない。電源投入時又はRESET時に毎回CMTからFM-7_SD初期設定プログラムを読み込む(約15秒)
-
-　　3)BOOT-ROMを差し替えない。電源投入時又はRESET時に毎回FDからFM-7_SD初期設定プログラムを走らせる。
-
-　対応しているCMT形式は、FM-7がCMTで読み書きするベタCMT形式(拡張子bimとしています)です。T77からbimへの変換、bimからT77への変換にはツールを使って変換します。
+　FDD内蔵機種でフリーエリアが足りない場合は、SHIFTキーを押しながら電源投入又はリセットしてFDDを切り離してください。
 
 　CMTからの読み込み実行に数分掛かっていたゲームも数十秒で実行できます。
 
 　なお、Arduino、ROMへ書き込むための機器が別途必要となります。
 
 ## 対応できないもの
-　BIOSのCMT読み書きルーチンをフックすることでSD-CARDへのアクセスを実現していますのでBIOSをコールせず独自ルーチンでCMTからLOADするソフト（ちゃっくんぽっぷ等）は対応できないのでLOAD出来ません。
+　BASICにSD専用命令を追加することでSD-CARDへのアクセスを実現しています。
 
-　市販ソフトの多くが独自ルーチン、特殊フォーマットを使っているようです。
+　機械語からBIOSをコール、又は独自ルーチンでCMTからLOADするソフトには対応していません。
 
-　bugfire2009さんのDumpListEditorにドロップしたときにファイルの大きさに比べて異様に小さなファイルしか解析できなかったり、(DAT)(unknown)と表示されるファイルが解析されるT77ファイルは独自ルーチン、特殊フォーマットを採用していると思います。
-
-　市販ソフトがLOAD出来ればラッキーくらいに思って雑誌打ち込み系のLOADに活用してください。
+　雑誌打ち込み系のLOAD、SAVEを想定しています。市販ソフトはLOAD出来ればラッキーくらいに思って活用してください。
 
 ## 回路図
-### FM-7_SD Rev1.1基板
-　KiCadフォルダ内Rev1.1フォルダのFM-7_SD_11.pdfを参照してください。
+　KiCadフォルダ内のMSX_SD.pdfを参照してください。
 
-[回路図Rev1.1](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev1.1/FM-7_SD_11.pdf)
+[回路図](https://github.com/yanataka60/MSX_SD/blob/main/Kicad/MSX_SD.pdf)
 
-![FM-7_SD_11](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev1.1/FM-7_SD_11.jpg)
-
-### FM-7_SD Rev2.0基板
-　KiCadフォルダ内Rev2.0フォルダのFM-7_SD_20.pdfを参照してください。
-
-[回路図Rev2.0](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev2.0/FM-7_SD_20.pdf)
-
-![FM-7_SD_20](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev2.0/FM-7_SD_20.jpg)
-
-### FM-7_SD Rev3.0基板
-　KiCadフォルダ内Rev3.0フォルダのFM-7_SD_30.pdfを参照してください。
-
-[回路図Rev3.0](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev3.0/FM-7_SD_30.pdf)
-
-![FM-7_SD_30](https://github.com/yanataka60/FM-7_SD/blob/main/KiCad/Rev3.0/FM-7_SD_30.jpg)
+![MSX_SD](https://github.com/yanataka60/MSX_SD/blob/main/Kicad/MSX_SD_1.jpg)
 
 ## 部品
 ### FM-7_SD Rev1.1基板
