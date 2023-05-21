@@ -1,0 +1,1240 @@
+			  Z80 ASSEMBLER - ZASM VER 1.6
+  009F                	CHGET		EQU		009FH			;1文字入力
+  00A2                	CHPUT		EQU		00A2H			;1文字表示
+  00C0                	BEEP		EQU		00C0H			;BEEP
+  0141                	SNSMAT		EQU		0141H			;キーマトリックススキャン
+  0156                	KILBUF		EQU		0156H			;キーボードバッファを空にする
+                      	
+  F55E                	BUF			EQU		0F55EH			;行バッファ
+  F676                	TXTTAB		EQU		0F676H			; BASICテキストエリアの先頭番地
+  F6C2                	VARTAB		EQU		0F6C2H			; 単純変数エリアの開始番地
+  F6C4                	ARYTAB		EQU		0F6C4H			; 配列テーブルエリアの開始番地
+  F6C6                	STREND		EQU		0F6C6H			; テキストエリアや変数エリアとして使用中であるメモリの最後の番地(フリーエリア)
+  F7C5                	HLSAVE		EQU		0F7C5H			;Math-pack用ワークエリアを流用　HLレジスタ退避用
+  F7C7                	SADRS		EQU		HLSAVE+2		;Math-pack用ワークエリアを流用　LOAD、SAVEスタートアドレス
+  F7C9                	EADRS		EQU		HLSAVE+4		;Math-pack用ワークエリアを流用　LOAD、SAVEエンドアドレス
+  F7CB                	GADRS		EQU		HLSAVE+6		;Math-pack用ワークエリアを流用　マシン語実行アドレス
+  F7CD                	SLOT		EQU		HLSAVE+8
+  F7D4                	EXEFLG		EQU		HLSAVE+15		;Math-pack用ワークエリアを流用　マシン語自動実行用
+  F7D7                	LBUF		EQU		HLSAVE+18		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+  FD89                	PROCNM		EQU		0FD89H			;CALLコマンド文字列
+                      	
+                      	;MSX
+  0038                	PPI_A		EQU		038H
+  0039                	PPI_B		EQU		PPI_A+1
+  003A                	PPI_C		EQU		PPI_A+2
+  003B                	PPI_R		EQU		PPI_A+3
+                      	
+                      	;MSX
+                      	;8255 PORT アドレス 3CH～3FH
+                      	;07CH PORTA 送信データ(下位4ビット)
+                      	;07DH PORTB 受信データ(8ビット)
+                      	;07EH PORTC Bit
+                      	
+                      	;7 IN  CHK
+                      	;6 IN
+                      	;5 IN
+                      	;4 IN 
+                      	;3 OUT
+                      	;2 OUT FLG
+                      	;1 OUT
+                      	;0 OUT
+                      	;
+                      	;3FH コントロールレジスタ
+                      	
+                      	;_SDIR				41H
+                      	;_SETL				42H
+                      	;_SETS				43H
+                      	;_SLOAD				44H
+                      	;_SBLOAD			45H
+                      	;_SSAVE				46H
+                      	;_SBSAVE			47H
+                      	
+  4000                	        ORG		4000H
+                      	
+  4000  4142          			DB		'A','B'				;拡張ROM認識コード
+  4002  1040          			DW		INIT				;INIT
+  4004  1A40          			DW		SRCH				;STATEMENT
+  4006  0000          			DW		0000H				;DEVICE
+  4008  0000          			DW		0000H				;TEXT
+  400A  0000          			DW		0000H				;RESERVE
+  400C  0000          			DW		0000H
+  400E  0000          			DW		0000H
+                      	
+  4010                	INIT:
+                      	;**** 8255初期化 ****
+                      	;PORTC下位BITをOUTPUT、上位BITをINPUT、PORTBをINPUT、PORTAをOUTPUT
+  4010  3E8A          			LD		A,8AH
+  4012  D33B          			OUT		(PPI_R),A
+                      	;出力BITをリセット
+  4014  AF            			XOR		A					;PORTA <- 0
+  4015  D338          			OUT		(PPI_A),A
+  4017  D33A          			OUT		(PPI_C),A			;PORTC <- 0
+                      	
+  4019  C9            			RET
+                      	
+  401A                	SRCH:
+  401A  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  401D  1189FD        			LD		DE,PROCNM
+  4020  1A            			LD		A,(DE)
+  4021  FE44          			CP		'D'
+  4023  2853          			JR		Z,DUMP				;_DUMPコマンド
+  4025  FE45          			CP		'E'
+  4027  CAF640        			JP		Z,EDIT				;_EDITコマンド
+  402A  FE47          			CP		'G'
+  402C  CAC241        			JP		Z,GOTO				;_GOTOコマンド
+  402F  FE53          			CP		'S'
+  4031  2027          			JR		NZ,SEND
+  4033  13            			INC		DE
+  4034  1A            			LD		A,(DE)
+  4035  FE42          			CP		'B'
+  4037  2815          			JR		Z,PROCSB
+  4039  FE44          			CP		'D'
+  403B  CA1A42        			JP		Z,PSDIR				;_SDIRコマンド
+  403E  FE45          			CP		'E'
+  4040  281D          			JR		Z,PROCSE
+  4042  FE4C          			CP		'L'
+  4044  CA6B43        			JP		Z,PSLOAD			;_SLOADコマンド
+  4047  FE53          			CP		'S'
+  4049  CAE443        			JP		Z,PSSAVE			;_SSAVEコマンド
+  404C  180C          			JR		SEND
+                      	
+  404E  13            	PROCSB:	INC		DE
+  404F  1A            			LD		A,(DE)
+  4050  FE4C          			CP		'L'
+  4052  CA6944        			JP		Z,PSBLOAD			;_SBLOADコマンド
+  4055  FE53          			CP		'S'
+  4057  CA8A45        			JP		Z,PSBSAVE			;_SBSAVEコマンド
+  405A                	SEND:
+  405A  2AC5F7        			LD		HL,(HLSAVE)			;HL復帰
+  405D  37            			SCF							;CALLコマンド不一致
+  405E  C9            			RET
+                      	
+  405F  13            	PROCSE:	INC		DE
+  4060  1A            			LD		A,(DE)
+  4061  FE54          			CP		'T'
+  4063  20F5          			JR		NZ,SEND
+  4065  13            			INC		DE
+  4066  1A            			LD		A,(DE)
+  4067  FE4C          			CP		'L'
+  4069  CAEA42        			JP		Z,PSETL				;_SETLコマンド
+  406C  FE53          			CP		'S'
+  406E  CA4543        			JP		Z,PSETS				;_SETSコマンド
+  4071  18E7          			JR		SEND
+                      	
+  4073                	SRET:
+  4073  2AC5F7        			LD		HL,(HLSAVE)			;HL復帰
+  4076  AF            			XOR		A					;正常終了
+  4077  C9            			RET
+                      	
+                      	;*********************************** MEMORY DUMP ********************************
+  4078                	DUMP:
+  4078  2AC5F7        			LD		HL,(HLSAVE)			;HL復帰
+  407B  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  407E  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  4081  EB            			EX		DE,HL
+  4082  CDBE40        			CALL	GETNUM				;HL <- 数値
+  4085  F5            			PUSH	AF
+  4086  1A            	DP3:	LD		A,(DE)				;00H又は「:」以外は読み飛ばし
+  4087  FE3A          			CP		3AH					;「:」
+  4089  2807          			JR		Z,DP5
+  408B  FE00          			CP		00H
+  408D  2803          			JR		Z,DP5
+  408F  13            			INC		DE
+  4090  18F4          			JR		DP3
+  4092  ED53C5F7      	DP5:	LD		(HLSAVE),DE			;次文先頭位置を退避
+  4096  F1            			POP		AF
+  4097  DA5A40        			JP		C,SEND				;数値が取得できなかったらERRORで終了
+                      	
+  409A  0E10          			LD		C,10H				;16行ループ
+  409C  7C            	DP6		LD		A,H
+  409D  CDD846        			CALL	MONBHX				;アドレス表示
+  40A0  7D            			LD		A,L
+  40A1  CDD846        			CALL	MONBHX
+  40A4  0608          			LD		B,08H				;横8Byte分ループ
+  40A6  3E20          	DP7:	LD		A,20H
+  40A8  CDA200        			CALL	CHPUT
+  40AB  7E            			LD		A,(HL)
+  40AC  CDD846        			CALL	MONBHX				;メモリ内容を表示
+  40AF  23            			INC		HL
+  40B0  10F4          			DJNZ	DP7
+  40B2  CD9547        			CALL	MONCLF				;改行
+  40B5  0D            			DEC		C
+  40B6  20E4          			JR		NZ,DP6
+  40B8  22CBF7        			LD		(GADRS),HL			;終了アドレス+1を退避　パラメータ無し_DUMPコマンドで続きを表示
+  40BB  C37340        			JP		SRET
+                      	
+                      	;********************* (DE)からの数値を取得してHLに格納 CF=0、空ならHL <- (SADRS) CF=0、数値でなければ CF=1
+  40BE  1A            	GETNUM:	LD		A,(DE)
+  40BF  FE0C          			CP		0CH					;16進数
+  40C1  282A          			JR		Z,GN1
+  40C3  FE0F          			CP		0FH					;10～255の整数
+  40C5  2818          			JR		Z,GN01
+  40C7  FE1C          			CP		1CH					;256～32767の整数
+  40C9  2822          			JR		Z,GN1
+  40CB  FE00          			CP		00H					;パラメータなし
+  40CD  280B          			JR		Z,GN0
+  40CF  FE11          			CP		11H					;11H～1BHなら0～9の整数
+  40D1  3804          			JR		C,GN00				;数値の識別コードなしへ
+  40D3  FE1B          			CP		1BH
+  40D5  380F          			JR		C,GN02
+  40D7  37            	GN00:	SCF							;数値の識別コードなし CF=1
+  40D8  181A          			JR		GN2
+  40DA  2ACBF7        	GN0:	LD		HL,(GADRS)			;HL <- (GADRS)　_DUMP用パラメータ無しなら続きアドレスをセット
+  40DD  1814          			JR		GN11
+                      			
+  40DF  13            	GN01:	INC		DE					;10～255の整数
+  40E0  1A            			LD		A,(DE)
+  40E1  6F            			LD		L,A
+  40E2  2600          			LD		H,00H
+  40E4  180D          			JR		GN11
+                      			
+  40E6  D611          	GN02:	SUB		11H					;11H～1BHなら0～9の整数 A-11H
+  40E8  6F            			LD		L,A
+  40E9  2600          			LD		H,00H
+  40EB  1806          			JR		GN11
+                      			
+  40ED  13            	GN1:	INC		DE					;16進数又は256～32767の整数
+  40EE  1A            			LD		A,(DE)
+  40EF  6F            			LD		L,A
+  40F0  13            			INC		DE
+  40F1  1A            			LD		A,(DE)
+  40F2  67            			LD		H,A
+  40F3  AF            	GN11:	XOR		A
+  40F4  13            	GN2:	INC		DE
+  40F5  C9            			RET
+                      	
+                      	;*********************************** MEMORY EDIT ********************************
+  40F6                	EDIT:
+  40F6  2AC5F7        			LD		HL,(HLSAVE)			;HL復帰
+  40F9  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  40FC  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  40FF  EB            			EX		DE,HL
+  4100  CDBE40        			CALL	GETNUM				;HL <- 数値
+  4103  F5            			PUSH	AF
+  4104  1A            	ED3:	LD		A,(DE)				;00H又は「:」以外は読み飛ばし
+  4105  FE3A          			CP		3AH					;「:」
+  4107  2807          			JR		Z,ED5
+  4109  FE00          			CP		00H
+  410B  2803          			JR		Z,ED5
+  410D  13            			INC		DE
+  410E  18F4          			JR		ED3
+  4110  ED53C5F7      	ED5:	LD		(HLSAVE),DE			;次文先頭位置を退避
+  4114  F1            			POP		AF
+  4115  DA4F41        			JP		C,ED91				;数値が取得できなかったらERRORで終了
+                      	
+  4118  7C            	ED51:	LD		A,H					;アドレス表示
+  4119  CDD846        			CALL	MONBHX
+  411C  7D            			LD		A,L
+  411D  CDD846        			CALL	MONBHX
+  4120  3E20          			LD		A,20H
+  4122  CDA200        			CALL	CHPUT
+                      	
+  4125  CDAE00        			CALL	00AEH				;1行入力
+  4128  115EF5        			LD		DE,BUF				;行バッファ
+                      	
+  412B  CD5241        			CALL	HLHEX				;アドレス再取得
+  412E  381F          			JR		C,ED91
+                      			
+  4130  1A            	ED6:	LD		A,(DE)
+  4131  A7            			AND		A					;アドレスのみなら終了
+  4132  281B          			JR		Z,ED91
+  4134  FE20          			CP		20H					;スペース読み飛ばし
+  4136  2003          			JR		NZ,ED7
+  4138  13            			INC		DE
+  4139  18F5          			JR		ED6
+                      	
+  413B  CDA841        	ED7:	CALL	TWOHEX				;データ取得
+  413E  380D          			JR		C,ED9				;16進数でなければ1行終了
+  4140  77            			LD		(HL),A				;取得した16進数を書き込み
+  4141  23            			INC		HL
+                      	
+  4142  1A            	ED8:	LD		A,(DE)				;次データ取得
+  4143  A7            			AND		A					;データが無ければ1行終了
+  4144  2807          			JR		Z,ED9
+  4146  FE20          			CP		20H					;スペース読み飛ばし
+  4148  20F1          			JR		NZ,ED7
+  414A  13            			INC		DE
+  414B  18F5          			JR		ED8					;00Hを取得するまでループ
+                      	
+  414D  18C9          	ED9:	JR		ED51				;次行へ
+                      	
+  414F  C37340        	ED91:	JP		SRET				;終了
+                      	
+                      	;**** DEからの4Byteが16進数を表すアスキーコードであれば16進数に変換してHLに代入 **************
+  4152                	HLHEX:
+  4152  210000        			LD		HL,0000H
+  4155  0604          			LD		B,04H
+  4157  1A            	HLHEX1:	LD		A,(DE)
+  4158  13            			INC		DE
+  4159  CDFC46        			CALL	AZLCNV				;大文字へ変換
+  415C  CD6841        			CALL	HEXCHK				;16進数を表すASCII文字かチェック
+  415F  DA6741        			JP		C,HLHEX2			;違ったらCF=1で終了
+  4162  CD7F41        			CALL	BINCV4				;16進数へ変換
+  4165  10F0          			DJNZ	HLHEX1				;4文字分ループ
+  4167  C9            	HLHEX2:	RET
+                      	
+                      	;*********************** 16進コード・チェック ****************************
+  4168                	HEXCHK:
+  4168  FE30          			CP		30H					;30H～39H
+  416A  3811          			JR		C,HC04
+  416C  FE3A          			CP		3AH
+  416E  3002          			JR		NC,HC02
+  4170  1808          			JR		HC03
+  4172  FE41          	HC02:	CP		41H					;41H～46H
+  4174  3807          			JR		C,HC04
+  4176  FE47          			CP		47H
+  4178  3003          			JR		NC,HC04
+  417A  B7            	HC03:	OR		A
+  417B  1801          			JR		HC05
+  417D  37            	HC04:	SCF
+  417E  C9            	HC05:	RET
+                      	
+                      	;********************** 16進コードからバイナリ形式への変換 ********************
+  417F                	BINCV4:
+  417F  F5            			PUSH	AF
+  4180  FE3A          			CP		3AH
+  4182  3004          			JR		NC,BC01
+  4184  D630          			SUB		30H					;30H～39Hなら30Hを引く
+  4186  1802          			JR		BC02
+  4188  D637          	BC01:	SUB		37H					;41H～46Hなら37Hを引く
+  418A  CB27          	BC02:	SLA		A					;左へ4回シフト
+  418C  CB27          			SLA		A
+  418E  CB27          			SLA		A
+  4190  CB27          			SLA		A
+                      	
+  4192  17            			RLA							;Aレジスタ、HLレジスタをまとめて左へ4回シフト
+  4193  CB15          			RL		L
+  4195  CB14          			RL		H
+  4197  17            			RLA
+  4198  CB15          			RL		L
+  419A  CB14          			RL		H
+  419C  17            			RLA
+  419D  CB15          			RL		L
+  419F  CB14          			RL		H
+  41A1  17            			RLA
+  41A2  CB15          			RL		L
+  41A4  CB14          			RL		H
+                      			
+  41A6  F1            			POP		AF
+  41A7  C9            			RET
+                      	
+                      	;**** DEからの2Byteが16進数を表すアスキーコードであれば16進数に変換してAに代入 **************
+  41A8  E5            	TWOHEX:	PUSH	HL
+  41A9  210000        			LD		HL,0000H
+  41AC  0602          			LD		B,02H
+  41AE  1A            	TWHEX1:	LD		A,(DE)
+  41AF  13            			INC		DE
+  41B0  CDFC46        			CALL	AZLCNV				;大文字へ変換
+  41B3  CD6841        			CALL	HEXCHK				;16進数を表すASCII文字かチェック
+  41B6  DAC041        			JP		C,TWHEX2			;違ったらCF=1で終了
+  41B9  CD7F41        			CALL	BINCV4				;16進数へ変換
+  41BC  10F0          			DJNZ	TWHEX1				;2文字分ループ
+  41BE  AF            			XOR		A
+  41BF  7D            			LD		A,L
+  41C0                	TWHEX2:
+  41C0  E1            			POP		HL
+  41C1  C9            			RET
+                      	
+                      	;*********************************** GOTO ********************************
+  41C2                	GOTO:
+  41C2  2AC5F7        			LD		HL,(HLSAVE)			;HL復帰
+  41C5  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  41C8  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  41CB  EB            			EX		DE,HL
+  41CC  CDBE40        			CALL	GETNUM				;HL <- 数値
+  41CF  F5            			PUSH	AF
+  41D0  1A            	GT3:	LD		A,(DE)				;00H又は「:」以外は読み飛ばし
+  41D1  FE3A          			CP		3AH					;「:」
+  41D3  2807          			JR		Z,GT5
+  41D5  FE00          			CP		00H
+  41D7  2803          			JR		Z,GT5
+  41D9  13            			INC		DE
+  41DA  18F4          			JR		GT3
+  41DC  ED53C5F7      	GT5:	LD		(HLSAVE),DE			;次文先頭位置を退避
+  41E0  F1            			POP		AF
+  41E1  DA5A40        			JP		C,SEND				;数値が取得できなかったらERRORで終了
+                      	
+  41E4  E5            			PUSH	HL
+  41E5  3ECD          			LD		A,0CDH				;スロットを切り替えて実行する用
+  41E7  32CDF7        			LD		(SLOT),A
+  41EA  212400        			LD		HL,0024H
+  41ED  22CEF7        			LD		(SLOT+1),HL
+  41F0  3E2A          			LD		A,2AH
+  41F2  32D0F7        			LD		(SLOT+3),A
+  41F5  21C5F7        			LD		HL,HLSAVE			;文終了位置(00H)又は「:」の位置を復帰
+  41F8  22D1F7        			LD		(SLOT+4),HL
+  41FB  3EAF          			LD		A,0AFH
+  41FD  32D3F7        			LD		(SLOT+6),A
+  4200  3ECD          			LD		A,0CDH				;EXEFLGに「CD」を書き込む
+  4202  32D4F7        			LD		(EXEFLG),A
+  4205  3EC9          			LD		A,0C9H				;EXEFLG+3に「C9」を書き込む
+  4207  32D7F7        			LD		(EXEFLG+3),A
+  420A  E1            			POP		HL
+  420B  22D5F7        			LD		(EXEFLG+1),HL		;実行アドレスをセット
+  420E  210040        			LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
+  4211  3AC1FC        			LD		A,(0FCC1H)
+  4214  E603          			AND		03H
+  4216  C3CDF7        			JP		SLOT				;ジャンプ
+  4219  C9            			RET
+                      	
+  421A                	PSDIR:
+                      	;************ Fコマンド DIRLIST **********************
+  421A  2AC5F7        	STLT:	LD		HL,(HLSAVE)			;HL復帰
+  421D  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  4220  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  4223  EB            			EX		DE,HL
+  4224  CD2E42        			CALL	DIRLIST				;DIRLIST本体をコール
+  4227  A7            			AND		A					;00以外ならERROR
+  4228  C4A946        			CALL	NZ,SDERR
+  422B  C37340        			JP		SRET
+                      	
+                      	
+                      	;**** DIRLIST本体 (HL=行頭に付加する文字列の先頭アドレス BC=行頭に付加する文字列の長さ) ****
+                      	;****              戻り値 A=エラーコード ****
+  422E                	DIRLIST:
+  422E  3E41          			LD		A,41H				;DIRLISTコマンド41Hを送信
+  4230  CD4946        			CALL	STCD				;コマンドコード送信
+  4233  A7            			AND		A					;00以外ならERROR
+  4234  C2E942        			JP		NZ,DLRET
+                      			
+  4237  C5            			PUSH	BC
+  4238  0621          			LD		B,21H				;ファイルネーム検索文字列33文字分を送信
+  423A  1A            	STLT1:	LD		A,(DE)
+  423B  A7            			AND		A
+  423C  2001          			JR		NZ,STLT2
+  423E  AF            			XOR		A
+  423F                	STLT2:
+  423F  CDFC46        			CALL	AZLCNV				;大文字に変換
+  4242  FE22          			CP		22H					;ダブルコーテーション読み飛ばし
+  4244  2810          			JR		Z,STLT22
+  4246  FE28          			CP		28H					;カッコ(読み飛ばし
+  4248  280C          			JR		Z,STLT22
+  424A  FE29          			CP		29H					;カッコ)読み飛ばし
+  424C  2808          			JR		Z,STLT22
+  424E  FE3A          			CP		3AH
+  4250  2007          			JR		NZ,STLT3			;「:」であればマルチステートメント、00Hに置き換え
+  4252  3E00          			LD		A,00H
+  4254  1803          			JR		STLT3				;1文字送信へ
+                      			
+  4256  13            	STLT22:	INC		DE					;DEをインクリメントして読み飛ばし処理
+  4257  18E1          			JR		STLT1
+  4259  F5            	STLT3:	PUSH	AF
+  425A  CD5D48        			CALL	SNDBYTE				;ファイルネーム検索文字列を送信
+  425D  F1            			POP		AF
+  425E  FE00          			CP		00H					;00H以外ならDEをインクリメント
+  4260  2801          			JR		Z,STLT4
+  4262  13            			INC		DE
+  4263  10D5          	STLT4:	DJNZ	STLT1					;33文字分ループ
+  4265  C1            			POP		BC
+  4266  ED53C5F7      			LD		(HLSAVE),DE			;文終了位置(00H)又は「:」の位置を退避
+  426A  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  426D  A7            			AND		A					;00以外ならERROR
+  426E  C2A946        			JP		NZ,SDERR
+                      	
+  4271  21D7F7        	DL1:	LD		HL,LBUF
+  4274  CD4A48        	DL2:	CALL	RCVBYTE				;'00H'を受信するまでを一行とする
+  4277  A7            			AND		A
+  4278  2810          			JR		Z,DL3
+  427A  FEFF          			CP		0FFH				;'0FFH'を受信したら終了
+  427C  2819          			JR		Z,DL4
+  427E  FEFD          			CP		0FDH				;'0FDH'受信で文字列を取得してSETLしたことを表示
+  4280  281A          			JR		Z,DL9
+  4282  FEFE          			CP		0FEH				;'0FEH'を受信したら一時停止して一文字入力待ち
+  4284  2836          			JR		Z,DL5
+  4286  77            			LD		(HL),A
+  4287  23            			INC		HL
+  4288  18EA          			JR		DL2
+  428A  3600          	DL3:	LD		(HL),00H
+  428C  21D7F7        			LD		HL,LBUF				;'00H'を受信したら一行分を表示して改行
+  428F  CD9E47        			CALL	STRPR
+  4292  CD9547        	DL33:	CALL	MONCLF
+  4295  18DA          			JR		DL1
+  4297  CD4A48        	DL4:	CALL	RCVBYTE				;状態取得(00H=OK)
+  429A  184D          			JR		DLRET
+                      	
+  429C  21D7F7        	DL9:	LD		HL,LBUF				;選択したファイルネームを再度取得
+  429F  CD4A48        	DL91:	CALL	RCVBYTE
+  42A2  77            			LD		(HL),A
+  42A3  FE00          			CP		00H
+  42A5  23            			INC		HL
+  42A6  20F7          			JR		NZ,DL91
+  42A8  21D7F7        			LD		HL,LBUF				;取得したファイルネームを表示
+  42AB  CD9E47        			CALL	STRPR
+  42AE  21C847        			LD		HL,MSG3				;「LOAD FILE SET OK!」を表示
+  42B1  CD9E47        			CALL	STRPR
+  42B4  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)読み飛ばし
+  42B7  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)読み飛ばし
+  42BA  182D          			JR		DLRET
+                      	
+  42BC  21AA47        	DL5:	LD		HL,MSG_KEY1			;HIT ANT KEY表示
+  42BF  CD9E47        			CALL	STRPR
+  42C2  CD9547        			CALL	MONCLF
+  42C5  CD0747        	DL6:	CALL	KSCAN				;KEY SCAN
+  42C8  28FB          			JR		Z,DL6
+  42CA  FE1B          			CP		1BH					;ESCで打ち切り
+  42CC  2813          			JR		Z,DL7
+  42CE  FE30          			CP		30H					;数字0～9ならそのままArduinoへ送信してSETL処理へ
+  42D0  3804          			JR		C,DL61
+  42D2  FE3A          			CP		3AH
+  42D4  380D          			JR		C,DL8
+  42D6  FE1E          	DL61:	CP		1EH					;カーソル↑で打ち切り
+  42D8  2807          			JR		Z,DL7
+  42DA  FE42          			CP		42H					;「B」で前ページ
+  42DC  2805          			JR		Z,DL8
+  42DE  AF            			XOR		A					;それ以外で継続
+  42DF  1802          			JR		DL8
+  42E1  3EFF          	DL7:	LD		A,0FFH				;0FFH中断コードを送信
+  42E3  CD5D48        	DL8:	CALL	SNDBYTE
+  42E6  C37142        			JP		DL1
+                      			
+  42E9  C9            	DLRET:	RET
+                      	
+                      			
+                      	;****************************** 読込ファイル設定 *********************************
+  42EA  2AC5F7        	PSETL:	LD		HL,(HLSAVE)			;HL復帰
+  42ED  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  42F0  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  42F3  EB            			EX		DE,HL
+  42F4  3E42          			LD		A,42H				;SETLコマンド42Hを送信
+  42F6  CD4946        			CALL	STCD				;コマンドコード送信
+  42F9  A7            			AND		A					;00以外ならERROR
+  42FA  C2E942        			JP		NZ,DLRET
+  42FD  CD1043        			CALL	CMDFN				;ファイルネーム送信
+  4300  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  4303  A7            			AND		A					;00以外ならERROR
+  4304  C2A946        			JP		NZ,SDERR
+                      	
+  4307  21C847        			LD		HL,MSG3				;「LOAD FILE SET OK!」を表示
+  430A  CD9E47        			CALL	STRPR
+  430D  C37340        			JP		SRET
+                      	
+                      	;*************************** ファイルネーム送信 *********************
+  4310  C5            	CMDFN:	PUSH	BC
+  4311  0621          			LD		B,21H				;ファイルネーム検索文字列33文字分を送信
+  4313  1A            	CMDFN1:	LD		A,(DE)
+  4314  A7            			AND		A
+  4315  2001          			JR		NZ,CMDFN2
+  4317  AF            			XOR		A
+  4318                	CMDFN2:
+                      	;		CALL	AZLCNV				;大文字に変換
+  4318  FE22          			CP		22H					;ダブルコーテーション読み飛ばし
+  431A  2814          			JR		Z,CMDFN22
+  431C  FE28          			CP		28H					;カッコ(読み飛ばし
+  431E  2810          			JR		Z,CMDFN22
+  4320  FE29          			CP		29H					;カッコ)読み飛ばし
+  4322  280C          			JR		Z,CMDFN22
+  4324  FE2C          			CP		2CH					;「,」であればパラメータ区切り、00Hに置き換え
+  4326  2804          			JR		Z,CMDFN21
+  4328  FE3A          			CP		3AH					;「:」であればマルチステートメント、00Hに置き換え
+  432A  2007          			JR		NZ,CMDFN3
+  432C  3E00          	CMDFN21:LD		A,00H
+  432E  1803          			JR		CMDFN3				;1文字送信へ
+                      			
+  4330  13            	CMDFN22:INC		DE					;DEをインクリメントして読み飛ばし処理
+  4331  18E0          			JR		CMDFN1
+  4333  F5            	CMDFN3:	PUSH	AF
+  4334  CD5D48        			CALL	SNDBYTE				;ファイルネーム検索文字列を送信
+  4337  F1            			POP		AF
+  4338  FE00          			CP		00H					;00H以外ならDEをインクリメント
+  433A  2801          			JR		Z,CMDFN4
+                      			
+  433C  13            	CMDFN33:INC		DE
+  433D  10D4          	CMDFN4:	DJNZ	CMDFN1				;33文字分ループ
+  433F  C1            			POP		BC
+  4340  ED53C5F7      			LD		(HLSAVE),DE			;文終了位置(00H)又は「:」の位置を退避
+  4344  C9            			RET
+                      	
+                      	;****************************** 書込ファイル設定 *********************************
+  4345  2AC5F7        	PSETS:	LD		HL,(HLSAVE)			;HL復帰
+  4348  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  434B  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  434E  EB            			EX		DE,HL
+  434F  3E43          			LD		A,43H				;SETSコマンド43Hを送信
+  4351  CD4946        			CALL	STCD				;コマンドコード送信
+  4354  A7            			AND		A					;00以外ならERROR
+  4355  C2E942        			JP		NZ,DLRET
+  4358  CD1043        			CALL	CMDFN				;ファイルネーム送信
+  435B  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  435E  A7            			AND		A					;00以外ならERROR
+  435F  C2A946        			JP		NZ,SDERR
+                      	
+  4362  21E547        			LD		HL,MSG5				;「SAVE FILE SET OK!」を表示
+  4365  CD9E47        			CALL	STRPR
+  4368  C37340        			JP		SRET
+                      	
+                      	;*********************** BASICプログラムロード **************************
+  436B  2AC5F7        	PSLOAD:	LD		HL,(HLSAVE)			;HL復帰
+  436E  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  4371  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  4374  EB            			EX		DE,HL
+  4375  3E44          			LD		A,44H				;SLOADコマンド44Hを送信
+  4377  CD4946        			CALL	STCD				;コマンドコード送信
+  437A  A7            			AND		A					;00以外ならERROR
+  437B  C2E942        			JP		NZ,DLRET
+  437E  CD1043        			CALL	CMDFN				;ファイルネーム送信
+  4381  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  4384  A7            			AND		A					;00以外ならERROR
+  4385  C2A946        			JP		NZ,SDERR
+                      	
+  4388  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  438B  A7            			AND		A					;00以外ならERROR
+  438C  C2A946        			JP		NZ,SDERR
+                      	
+  438F  0606          			LD		B,06H
+  4391  21D7F7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  4394  CD4A48        	PSL5:	CALL	RCVBYTE
+  4397  77            			LD		(HL),A
+  4398  23            			INC		HL
+  4399  10F9          			DJNZ	PSL5
+  439B  3E00          			LD		A,00H
+  439D  77            			LD		(HL),A
+  439E  21DC47        			LD		HL,MSG4				;「Loading 」を表示
+  43A1  CD9E47        			CALL	STRPR
+  43A4  21D7F7        			LD		HL,LBUF				;ファイルネームを表示
+  43A7  CD9E47        			CALL	STRPR
+  43AA  CD9547        			CALL	MONCLF
+                      			
+  43AD  ED5B76F6      			LD		DE,(TXTTAB)			;DE <- BASICフリーエリア先頭アドレス
+                      			
+  43B1  CD4A48        	PSL51:	CALL	RCVBYTE				;1行の文字数を取得
+  43B4  6F            			LD		L,A
+  43B5  2600          			LD		H,00H
+  43B7  FE00          			CP		00H					;文字数0なら終了
+  43B9  2815          			JR		Z,PSL53
+  43BB  E5            			PUSH	HL					;文字数退避
+  43BC  23            			INC		HL
+  43BD  23            			INC		HL
+  43BE  19            			ADD		HL,DE				;リンクポインタを計算 HL=文字数(HL)+1行前のリンクポインタ値(DE)
+  43BF  7D            			LD		A,L
+  43C0  12            			LD		(DE),A				;リンクポインタ書き込み
+  43C1  13            			INC		DE
+  43C2  7C            			LD		A,H
+  43C3  12            			LD		(DE),A
+  43C4  E1            			POP		HL					;文字数復帰
+  43C5  13            			INC		DE
+  43C6  CD4A48        	PSL52:	CALL	RCVBYTE				;文字を取得
+  43C9  12            			LD		(DE),A				;文字を書き込み
+  43CA  13            			INC		DE
+  43CB  2D            			DEC		L
+  43CC  20F8          			JR		NZ,PSL52			;文字数分1行分を取得、書き込みをループ
+  43CE  18E1          			JR		PSL51				;文字数0を受信するまでループ
+                      	
+  43D0                	PSL53:
+  43D0  AF            			XOR		A
+  43D1  12            			LD		(DE),A				;エンドマーク00Hx2書き込み
+  43D2  13            			INC		DE
+  43D3  12            			LD		(DE),A
+  43D4  13            			INC		DE
+                      	
+  43D5  ED53C2F6      			LD		(VARTAB),DE			;エンドマーク+1のアドレスをVARTABにセット
+  43D9  ED53C4F6      			LD		(ARYTAB),DE			;エンドマーク+1のアドレスをARYTABにセット
+  43DD  ED53C6F6      			LD		(STREND),DE			;エンドマーク+1のアドレスをSTRENDにセット
+                      	
+  43E1  C37340        			JP		SRET
+                      	
+                      	;*********************** BASICプログラムセーブ **************************
+  43E4  ED5B76F6      	PSSAVE:	LD		DE,(TXTTAB)			;DE <- BASICフリーエリア先頭アドレス
+  43E8  1A            			LD		A,(DE)
+  43E9  13            			INC		DE
+  43EA  47            			LD		B,A
+  43EB  1A            			LD		A,(DE)
+  43EC  B0            			OR		B
+  43ED  2871          			JR		Z,PSS7				;プログラムが無ければ終了
+                      	
+  43EF  2AC5F7        			LD		HL,(HLSAVE)
+  43F2  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  43F5  22C5F7        			LD		(HLSAVE),HL
+  43F8  EB            			EX		DE,HL
+  43F9  3E46          			LD		A,46H				;SSAVEコマンド46Hを送信
+  43FB  CD4946        			CALL	STCD				;コマンドコード送信
+  43FE  A7            			AND		A					;00以外ならERROR
+  43FF  C2E942        			JP		NZ,DLRET
+  4402  CD1043        			CALL	CMDFN				;ファイルネーム送信
+  4405  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  4408  A7            			AND		A					;00以外ならERROR
+  4409  C2A946        			JP		NZ,SDERR
+                      	
+  440C  0606          			LD		B,06H
+  440E  21D7F7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  4411  CD4A48        	PSS5:	CALL	RCVBYTE
+  4414  77            			LD		(HL),A
+  4415  23            			INC		HL
+  4416  10F9          			DJNZ	PSS5
+  4418  3E00          			LD		A,00H
+  441A  77            			LD		(HL),A
+  441B  21F947        			LD		HL,MSG6				;「Saving 」を表示
+  441E  CD9E47        			CALL	STRPR
+  4421  21D7F7        			LD		HL,LBUF				;ファイルネームを表示
+  4424  CD9E47        			CALL	STRPR
+  4427  CD9547        			CALL	MONCLF
+                      			
+  442A  ED5B76F6      			LD		DE,(TXTTAB)			;DE <- BASICフリーエリア先頭アドレス
+                      			
+  442E  1A            	PSS51:	LD		A,(DE)				;次行アドレスポインタ取得
+  442F  6F            			LD		L,A
+  4430  13            			INC		DE
+  4431  1A            			LD		A,(DE)
+  4432  13            			INC		DE
+  4433  67            			LD		H,A
+  4434  B5            			OR		L
+  4435  281B          			JR		Z,PSS6				;次行アドレスポインタが0000HならBASICプログラムEND
+                      	
+  4437  E5            			PUSH	HL
+  4438  AF            			XOR		A
+  4439  ED52          			SBC		HL,DE				;次行アドレスから１行分のバイト数を計算し送信
+  443B  7D            			LD		A,L
+  443C  45            			LD		B,L
+  443D  CD5D48        			CALL	SNDBYTE
+  4440  E1            			POP		HL
+                      	
+  4441  7D            			LD		A,L
+  4442  CD5D48        			CALL	SNDBYTE				;次行アドレスポインタを送信
+  4445  7C            			LD		A,H
+  4446  CD5D48        			CALL	SNDBYTE
+                      	
+  4449  1A            	PSS52:	LD		A,(DE)				;１行分のBASICプログラムを送信
+  444A  CD5D48        			CALL	SNDBYTE
+  444D  13            			INC		DE
+  444E  10F9          			DJNZ	PSS52
+  4450  18DC          			JR		PSS51				;次行アドレスポインタが0000Hになるまでループ
+                      	
+  4452                	PSS6:
+  4452  AF            			XOR		A
+  4453  CD5D48        			CALL	SNDBYTE
+  4456  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  4459  A7            			AND		A					;00以外ならERROR
+  445A  C2A946        			JP		NZ,SDERR
+  445D  C37340        			JP		SRET
+                      	
+  4460                	PSS7:
+  4460  210148        			LD		HL,MSG7				;NO PROGRAMを表示
+  4463  CD9E47        			CALL	STRPR
+  4466  C37340        			JP		SRET
+                      	
+                      	;*********************************** マシン語ロード ********************************
+  4469  2AC5F7        	PSBLOAD:LD		HL,(HLSAVE)			;HL復帰
+  446C  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  446F  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  4472  EB            			EX		DE,HL
+  4473  3E45          			LD		A,45H				;SBLOADコマンド45Hを送信
+  4475  CD4946        			CALL	STCD				;コマンドコード送信
+  4478  A7            			AND		A					;00以外ならERROR
+  4479  C2E942        			JP		NZ,DLRET
+                      			
+  447C  C5            			PUSH	BC
+  447D  0621          			LD		B,21H				;ファイルネーム検索文字列33文字分を送信
+  447F  21D4F7        			LD		HL,EXEFLG			;「,R」オプション用のEXEFLGをクリア
+  4482  AF            			XOR		A
+  4483  77            			LD		(HL),A
+  4484  1A            	PSBL1:	LD		A,(DE)
+  4485  A7            			AND		A
+  4486  2000          			JR		NZ,PSBL2
+                      	;		XOR		A
+  4488                	PSBL2:
+                      	;		CALL	AZLCNV				;大文字に変換
+  4488  FE22          			CP		22H					;ダブルコーテーション読み飛ばし
+  448A  2810          			JR		Z,PSBL22
+  448C  FE28          			CP		28H					;カッコ(読み飛ばし
+  448E  280C          			JR		Z,PSBL22
+  4490  FE29          			CP		29H					;カッコ)読み飛ばし
+  4492  2808          			JR		Z,PSBL22
+  4494  FE3A          			CP		3AH
+  4496  2007          			JR		NZ,PSBL3			;「:」であればマルチステートメント、00Hに置き換え
+  4498  3E00          			LD		A,00H
+  449A  1803          			JR		PSBL3				;1文字送信へ
+                      	
+  449C  13            	PSBL22:	INC		DE					;DEをインクリメントして読み飛ばし処理
+  449D  18E5          			JR		PSBL1
+  449F                	PSBL3:	
+  449F  FE2C          			CP		2CH					;「,」を見つけたら文字列終了として00Hを送信
+  44A1  201B          			JR		NZ,PSBL32
+  44A3  AF            			XOR		A
+  44A4  CD5D48        			CALL	SNDBYTE
+  44A7  13            			INC		DE
+  44A8  05            			DEC		B
+  44A9  1A            			LD		A,(DE)
+  44AA  FE52          			CP		52H					;「,R」又は「,r」だったら自動実行をセット
+  44AC  2804          			JR		Z,PSBL31
+  44AE  FE72          			CP		72H
+  44B0  200C          			JR		NZ,PSBL32
+  44B2  3ECD          	PSBL31:	LD		A,0CDH
+  44B4  21D4F7        			LD		HL,EXEFLG			;自動実行するならEXEFLGに「CD」、しないなら「00」
+  44B7  77            			LD		(HL),A
+  44B8  AF            			XOR		A
+  44B9  CD5D48        			CALL	SNDBYTE
+  44BC  1809          			JR		PSBL33
+  44BE  F5            	PSBL32:	PUSH	AF
+  44BF  CD5D48        			CALL	SNDBYTE				;ファイルネーム検索文字列を送信
+  44C2  F1            			POP		AF
+  44C3  FE00          			CP		00H					;00H以外ならDEをインクリメント
+  44C5  2801          			JR		Z,PSBL4
+                      			
+  44C7  13            	PSBL33:	INC		DE
+  44C8  10BA          	PSBL4:	DJNZ	PSBL1				;33文字分ループ
+  44CA  C1            			POP		BC
+  44CB  ED53C5F7      			LD		(HLSAVE),DE			;文終了位置(00H)又は「:」の位置を退避
+  44CF  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  44D2  A7            			AND		A					;00以外ならERROR
+  44D3  C2A946        			JP		NZ,SDERR
+                      	
+  44D6  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  44D9  A7            			AND		A					;00以外ならERROR
+  44DA  C2A946        			JP		NZ,SDERR
+                      	
+  44DD  0606          			LD		B,06H
+  44DF  21D7F7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  44E2  CD4A48        	PSBL5:	CALL	RCVBYTE
+  44E5  77            			LD		(HL),A
+  44E6  23            			INC		HL
+  44E7  10F9          			DJNZ	PSBL5
+  44E9  3E00          			LD		A,00H
+  44EB  77            			LD		(HL),A
+  44EC  21DC47        			LD		HL,MSG4				;「Loading 」を表示
+  44EF  CD9E47        			CALL	STRPR
+  44F2  21D7F7        			LD		HL,LBUF				;ファイルネームを表示
+  44F5  CD9E47        			CALL	STRPR
+  44F8  3E2C          			LD		A,','
+  44FA  CDA200        			CALL	CHPUT
+                      			
+  44FD  21C7F7        			LD		HL,SADRS			;SADRS、EADRS、GADRSを取得
+  4500  0606          			LD		B,06H
+  4502  CD4A48        	PSBL55:	CALL	RCVBYTE
+  4505  77            			LD		(HL),A
+  4506  23            			INC		HL
+  4507  10F9          			DJNZ	PSBL55
+                      			
+  4509  3AC8F7        			LD		A,(SADRS+1)			;SADRS表示
+  450C  CDD846        			CALL	MONBHX
+  450F  3AC7F7        			LD		A,(SADRS)
+  4512  CDD846        			CALL	MONBHX
+  4515  3E2C          			LD		A,','
+  4517  CDA200        			CALL	CHPUT
+  451A  3ACAF7        			LD		A,(EADRS+1)			;EADRS表示
+  451D  CDD846        			CALL	MONBHX
+  4520  3AC9F7        			LD		A,(EADRS)
+  4523  CDD846        			CALL	MONBHX
+  4526  3E2C          			LD		A,','
+  4528  CDA200        			CALL	CHPUT
+  452B  3ACCF7        			LD		A,(GADRS+1)			;GADRS表示
+  452E  CDD846        			CALL	MONBHX
+  4531  3ACBF7        			LD		A,(GADRS)
+  4534  CDD846        			CALL	MONBHX
+  4537  CD9547        			CALL	MONCLF
+                      	
+  453A  2AC9F7        			LD		HL,(EADRS)
+  453D  ED5BC7F7      			LD		DE,(SADRS)
+  4541  CD4A48        	PSBL6:	CALL	RCVBYTE				;1Byte受信
+  4544  12            			LD		(DE),A				;(SADRS) <- A、SADRS+1
+  4545  E5            			PUSH	HL
+  4546  AF            			XOR		A
+  4547  ED52          			SBC		HL,DE				;EADSR = SADRSまでループ
+  4549  E1            			POP		HL
+  454A  13            			INC		DE
+  454B  20F4          			JR		NZ,PSBL6
+  454D  21D4F7        			LD		HL,EXEFLG
+  4550  7E            			LD		A,(HL)
+  4551  FECD          			CP		0CDH				;EXEFLGが「CD」なら直後にGADRSを書き込む
+  4553  2032          			JR		NZ,PSBL61			;でなければ終了
+                      	
+  4555  3ECD          			LD		A,0CDH				;スロットを切り替えて実行する用
+  4557  32CDF7        			LD		(SLOT),A
+  455A  212400        			LD		HL,0024H
+  455D  22CEF7        			LD		(SLOT+1),HL
+  4560  3E2A          			LD		A,2AH
+  4562  32D0F7        			LD		(SLOT+3),A
+  4565  21C5F7        			LD		HL,HLSAVE			;文終了位置(00H)又は「:」の位置を復帰
+  4568  22D1F7        			LD		(SLOT+4),HL
+  456B  3EAF          			LD		A,0AFH
+  456D  32D3F7        			LD		(SLOT+6),A
+  4570  3EC9          			LD		A,0C9H				;EXEFLG+3に「C9」を書き込む
+  4572  32D7F7        			LD		(EXEFLG+3),A
+                      	
+  4575  2ACBF7        			LD		HL,(GADRS)
+  4578  22D5F7        			LD		(EXEFLG+1),HL		;自動実行アドレスをセット
+  457B  210040        			LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
+  457E  3AC1FC        			LD		A,(0FCC1H)
+  4581  E603          			AND		03H
+  4583  C3CDF7        			JP		SLOT				;(GADRS)へジャンプ
+  4586  C9            			RET
+  4587  C37340        	PSBL61:	JP		SRET
+                      	
+                      	;*********************************** マシン語セーブ ********************************
+  458A  2AC5F7        	PSBSAVE:LD		HL,(HLSAVE)			;HL復帰
+  458D  CD9046        			CALL	STFN				;スペース、ダブルコーテーション、カッコを除去
+  4590  22C5F7        			LD		(HLSAVE),HL			;HL退避
+  4593  EB            			EX		DE,HL
+  4594  3E47          			LD		A,47H				;SBSAVEコマンド47Hを送信
+  4596  CD4946        			CALL	STCD				;コマンドコード送信
+  4599  A7            			AND		A					;00以外ならERROR
+  459A  C2E942        			JP		NZ,DLRET
+  459D  CD1043        			CALL	CMDFN				;ファイルネーム送信
+                      	
+  45A0  CD3346        			CALL	NUMSET
+  45A3  22C7F7        			LD		(SADRS),HL			;スタートアドレスを取得、数値を取得できなければエラー終了
+  45A6  DA2B46        			JP		C,PSBS7
+                      			
+  45A9  CD3346        			CALL	NUMSET
+  45AC  22C9F7        			LD		(EADRS),HL			;エンドアドレスを取得、数値を取得できなければエラー終了
+  45AF  DA2B46        			JP		C,PSBS7
+                      			
+  45B2  E5            			PUSH	HL
+  45B3  D5            			PUSH	DE
+  45B4  ED5BC7F7      			LD		DE,(SADRS)
+  45B8  AF            			XOR		A
+  45B9  ED52          			SBC		HL,DE
+  45BB  D1            			POP		DE
+  45BC  E1            			POP		HL
+  45BD  DA2B46        			JP		C,PSBS7				;エンドアドレス>=スタートアドレスでなければエラー終了
+                      	
+  45C0  CD3346        			CALL	NUMSET
+  45C3  22CBF7        			LD		(GADRS),HL			;実行アドレスを取得、数値を取得できなければエラー終了
+  45C6  DA2B46        			JP		C,PSBS7
+                      	
+  45C9  AF            			XOR		A
+  45CA  CD5D48        			CALL	SNDBYTE				;ファイルネーム、各数値が正常に取得出来たら続行指示
+                      	
+  45CD  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  45D0  A7            			AND		A					;00以外ならERROR
+  45D1  C2A946        			JP		NZ,SDERR
+                      	
+  45D4  1A            	PSBS1:	LD		A,(DE)				;00H又は「:」以外は読み飛ばし
+  45D5  FE3A          			CP		3AH					;「:」
+  45D7  2807          			JR		Z,PSBS2
+  45D9  FE00          			CP		00H
+  45DB  2803          			JR		Z,PSBS2
+  45DD  13            			INC		DE
+  45DE  18F4          			JR		PSBS1
+  45E0  ED53C5F7      	PSBS2:	LD		(HLSAVE),DE			;次文先頭位置を退避
+                      			
+                      	
+  45E4  0606          			LD		B,06H
+  45E6  21D7F7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  45E9  CD4A48        	PSBS22:	CALL	RCVBYTE
+  45EC  77            			LD		(HL),A
+  45ED  23            			INC		HL
+  45EE  10F9          			DJNZ	PSBS22
+  45F0  3E00          			LD		A,00H
+  45F2  77            			LD		(HL),A
+  45F3  21F947        			LD		HL,MSG6				;「Saving 」を表示
+  45F6  CD9E47        			CALL	STRPR
+  45F9  21D7F7        			LD		HL,LBUF				;ファイルネームを表示
+  45FC  CD9E47        			CALL	STRPR
+  45FF  CD9547        			CALL	MONCLF
+                      			
+  4602  0606          			LD		B,06H
+  4604  21C7F7        			LD		HL,SADRS			;スタートアドレス、エンドアドレス、実行アドレスを送信
+  4607  7E            	PSBS23:	LD		A,(HL)
+  4608  CD5D48        			CALL	SNDBYTE
+  460B  23            			INC		HL
+  460C  10F9          			DJNZ	PSBS23
+                      	
+  460E  ED5BC7F7      			LD		DE,(SADRS)
+  4612  2AC9F7        	PSBS3:	LD		HL,(EADRS)
+  4615  1A            			LD		A,(DE)
+  4616  CD5D48        			CALL	SNDBYTE				;スタートアドレスからエンドアドレスまでのデータを読み出して送信
+  4619  AF            			XOR		A
+  461A  ED52          			SBC		HL,DE
+  461C  13            			INC		DE
+  461D  7C            			LD		A,H
+  461E  B5            			OR		L
+  461F  20F1          			JR		NZ,PSBS3
+                      	
+  4621                	PSBS6:
+  4621  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  4624  A7            			AND		A					;00以外ならERROR
+  4625  C2A946        			JP		NZ,SDERR
+  4628  C37340        			JP		SRET
+                      	
+  462B                	PSBS7:
+  462B  3EFF          			LD		A,0FFH				;エラー終了、打ち切りを指示
+  462D  CD5D48        			CALL	SNDBYTE
+  4630  C3A946        			JP		SDERR
+                      	
+                      	;********************* (DE)から数値を取得してHLへセット、取得できなければCF=1
+  4633  1A            	NUMSET:	LD		A,(DE)
+  4634  FE2C          			CP		2CH					;コンマ読み飛ばし
+  4636  C24746        			JP		NZ,NUMST1
+  4639  13            			INC		DE
+  463A  1A            			LD		A,(DE)
+  463B  FE00          			CP		00H					;00Hなら数値無し
+  463D  CA4746        			JP		Z,NUMST1
+  4640  CDBE40        			CALL	GETNUM				;数値を取得
+  4643  DA4746        			JP		C,NUMST1
+  4646  C9            			RET
+  4647                	NUMST1:
+  4647  37            			SCF							;エラー終了
+  4648  C9            			RET
+                      	
+                      	;**** コマンド送信 (IN:A コマンドコード)****
+  4649  CD5D48        	STCD:	CALL	SNDBYTE				;Aレジスタのコマンドコードを送信
+  464C  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  464F  C9            			RET
+                      	
+                      	;**** コマンド、ファイル名送信 (IN:A コマンドコード HL:ファイルネームの先頭)****
+  4650  23            	STCMD:	INC		HL
+  4651  CD9046        			CALL	STFN				;空白除去
+  4654  E5            			PUSH	HL
+  4655  CD4946        			CALL	STCD				;コマンドコード送信
+  4658  E1            			POP		HL
+  4659  A7            			AND		A					;00以外ならERROR
+  465A  C2A946        			JP		NZ,SDERR
+  465D  CD6546        			CALL	STFS				;ファイルネーム送信
+  4660  A7            			AND		A					;00以外ならERROR
+  4661  C2A946        			JP		NZ,SDERR
+  4664  C9            			RET
+                      	
+                      	;**** ファイルネーム送信(IN:HL ファイルネームの先頭) ******
+  4665  0620          	STFS:	LD		B,20H
+  4667  7E            	STFS1:	LD		A,(HL)				;FNAME送信
+  4668  FE22          			CP		22H
+  466A  2808          			JR		Z,STFS11
+  466C  FE28          			CP		28H
+  466E  2804          			JR		Z,STFS11
+  4670  FE29          			CP		29H
+  4672  2003          			JR		NZ,STFS2
+  4674  23            	STFS11:	INC		HL
+  4675  18F0          			JR		STFS1
+  4677  F5            	STFS2:	PUSH	AF
+  4678  CD5D48        			CALL	SNDBYTE
+  467B  F1            			POP		AF
+  467C  FE00          			CP		00H
+  467E  2801          			JR		Z,STFS3
+  4680  23            			INC		HL
+  4681  05            	STFS3:	DEC		B
+  4682  20E3          			JR		NZ,STFS1
+  4684  3E0D          			LD		A,0DH
+  4686  CD5D48        			CALL	SNDBYTE
+  4689  22C5F7        			LD		(HLSAVE),HL
+  468C  CD4A48        			CALL	RCVBYTE				;状態取得(00H=OK)
+  468F  C9            			RET
+                      	
+                      	;****** FILE NAMEが取得できるまでスペース、ダブルコーテーション、カッコを読み飛ばし (IN:HL コマンド文字の次の文字 OUT:HL ファイルネームの先頭)*********
+  4690  F5            	STFN:	PUSH	AF
+  4691  7E            	STFN1:	LD		A,(HL)
+  4692  FE20          			CP		20H
+  4694  2808          			JR		Z,STFN2
+  4696  FE22          			CP		22H
+  4698  2804          			JR		Z,STFN2
+  469A  FE28          			CP		28H
+  469C  2003          			JR		NZ,STFN3
+  469E  23            	STFN2:	INC		HL					;ファイルネームまでスペース読み飛ばし
+  469F  18F0          			JR		STFN1
+  46A1  F1            	STFN3:	POP		AF
+  46A2  C9            			RET
+                      	
+  46A3                	DEFDIR:
+  46A3  5F5345544C20  			DB		'_SETL '
+  46A9                	DEND:
+                      	
+                      	;************** エラー内容表示 *****************************
+  46A9                	SDERR:
+  46A9  F5            			PUSH	AF
+  46AA  FEF0          			CP		0F0H
+  46AC  2005          			JR		NZ,ERR3
+  46AE  211148        			LD		HL,MSG_F0			;SD-CARD INITIALIZE ERROR
+  46B1  1818          			JR		ERRMSG
+  46B3  FEF1          	ERR3:	CP		0F1H
+  46B5  2005          			JR		NZ,ERR4
+  46B7  212A48        			LD		HL,MSG_F1			;NOT FIND FILE
+  46BA  180F          			JR		ERRMSG
+  46BC  FEF3          	ERR4:	CP		0F3H
+  46BE  2005          			JR		NZ,ERR99
+  46C0  213848        			LD		HL,MSG_F3			;FILE EXIST
+  46C3  1806          			JR		ERRMSG
+  46C5                	ERR99:
+  46C5  CDD846        			CALL	MONBHX
+  46C8  214348        			LD		HL,MSG99			;その他ERROR
+  46CB  CD9E47        	ERRMSG:	CALL	STRPR
+  46CE  CD9547        			CALL	MONCLF
+  46D1  CDC000        			CALL	BEEP
+  46D4  F1            			POP		AF
+  46D5  C37340        			JP		SRET
+                      	
+                      	;************** Aレジスタの値を16進数として表示
+  46D8  F5            	MONBHX:	PUSH	AF
+  46D9  CB3F          			SRL		A
+  46DB  CB3F          			SRL		A
+  46DD  CB3F          			SRL		A
+  46DF  CB3F          			SRL		A
+  46E1  CDF146        			CALL	MH0
+  46E4  CDA200        			CALL	CHPUT
+  46E7  F1            			POP		AF
+  46E8  E60F          			AND		0FH
+  46EA  CDF146        			CALL	MH0
+  46ED  CDA200        			CALL	CHPUT
+  46F0  C9            			RET
+                      	
+  46F1  FE0A          	MH0:	CP		0AH
+  46F3  3004          			JR		NC,MH1
+  46F5  C630          			ADD		A,30H
+  46F7  1802          			JR		MH2
+  46F9  C637          	MH1:	ADD		A,37H
+  46FB  C9            	MH2:	RET
+                      	
+                      	;************ Aレジスタのアルファベット小文字を大文字に変換
+  46FC  FE61          	AZLCNV:	CP		61H
+  46FE  3806          			JR		C,AZ1
+  4700  FE7B          			CP		7BH
+  4702  3002          			JR		NC,AZ1
+  4704  D620          			SUB		20H
+  4706  C9            	AZ1:	RET
+                      	
+                      	;************ キーボードスキャン
+                      	;押されていなければ A <- 00H、Z=1
+                      	;押されていれば     A <- ASCIIコード(KTBLから取得)
+  4707  0E00          	KSCAN:	LD		C,00H				;マトリックス行初期値
+  4709  79            	KS1:	LD		A,C					;A <- マトリックス行
+  470A  CD4101        			CALL	SNSMAT				;スキャン
+  470D  FEFF          			CP		0FFH
+  470F  2009          			JR		NZ,KS2				;何か押されていればKS2へ
+  4711  79            			LD		A,C
+  4712  3C            			INC		A					;マトリックス行+1
+  4713  4F            			LD		C,A
+  4714  FE0B          			CP		0BH					;10回のスキャンが終わるまでKS1へ
+  4716  20F1          			JR		NZ,KS1
+  4718  AF            			XOR		A					;何も押されていなかったらA <- 00Hでリターン
+  4719  C9            			RET
+  471A  0600          	KS2:	LD		B,00H
+  471C  CB27          	KS3:	SLA		A					;ビットをバイトに変換して加算
+  471E  3003          			JR		NC,KS4
+  4720  04            			INC		B
+  4721  18F9          			JR		KS3
+  4723  213D47        	KS4:	LD		HL,KTBL				;KTBL+マトリックス行*8+ビットからバイトへ変換した数値で計算する
+  4726  110800        			LD		DE,0008H
+  4729  79            			LD		A,C
+  472A  FE00          	KS5:	CP		00H
+  472C  2804          			JR		Z,KS6
+  472E  19            			ADD		HL,DE
+  472F  3D            			DEC		A
+  4730  18F8          			JR		KS5
+  4732  58            	KS6:	LD		E,B
+  4733  1600          			LD		D,00H
+  4735  19            			ADD		HL,DE
+  4736  CD9F00        			CALL	CHGET
+  4739  7E            			LD		A,(HL)
+  473A  FE00          			CP		00H
+  473C  C9            			RET
+                      	
+  473D  37363534333231	KTBL:	DB		37H,36H,35H,34H,33H,32H,31H,30H
+  4745  3B5B405C5E2D39			DB		3BH,5BH,40H,5CH,5EH,2DH,39H,38H
+  474D  42415F2F2E2C5D			DB		42H,41H,5FH,2FH,2EH,2CH,5DH,3AH
+  4755  4A494847464544			DB		4AH,49H,48H,47H,46H,45H,44H,43H
+  475D  5251504F4E4D4C			DB		52H,51H,50H,4FH,4EH,4DH,4CH,4BH
+  4765  5A595857565554			DB		5AH,59H,58H,57H,56H,55H,54H,53H
+  476D  87868584838281			DB		87H,86H,85H,84H,83H,82H,81H,80H
+  4775  0D8E421B8B1B89			DB		0DH,8EH,42H,1BH,8BH,1BH,89H,88H		;「BS」を「B」に変更
+  477D  1C1F1E1D7F920B			DB		1CH,1FH,1EH,1DH,7FH,92H,0BH,20H
+  4785  34333231309A99			DB		34H,33H,32H,31H,30H,9AH,99H,98H
+  478D  2C2E2D39383736			DB		2CH,2EH,2DH,39H,38H,37H,36H,35H
+                      	
+                      	;************* 改行を表示
+  4795  E5            	MONCLF:	PUSH	HL
+  4796  210E48        			LD		HL,CRLF
+  4799  CD9E47        			CALL	STRPR
+  479C  E1            			POP		HL
+  479D  C9            			RET
+                      	
+                      	;************* (HL)からの文字列を00Hまで表示
+  479E  7E            	STRPR:	LD		A,(HL)
+  479F  FE00          			CP		00H
+  47A1  2806          			JR		Z,STRPR1
+  47A3  CDA200        			CALL	CHPUT
+  47A6  23            			INC		HL
+  47A7  18F5          			JR		STRPR
+  47A9  C9            	STRPR1:	RET
+                      	
+  47AA                	MSG_KEY1:
+  47AA  53454C3A302D39			DB		'SEL:0-9 NXT:ANY BCK:B BRK:ESC'
+  47C7  00            			DB		00H
+                      	
+  47C8                	MSG3:
+  47C8  4C4F4144204649			DB		'LOAD FILE SET OK!',0DH,0AH,00H
+                      	
+  47DC                	MSG4:
+  47DC  4C6F6164696E67			DB		'Loading ',00H
+                      	
+  47E5                	MSG5:
+  47E5  53415645204649			DB		'SAVE FILE SET OK!',0DH,0AH,00H
+                      	
+  47F9                	MSG6:
+  47F9  536176696E6720			DB		'Saving ',00H
+                      	
+  4801                	MSG7:
+  4801  4E4F2050524F47			DB		'NO PROGRAM',0DH,0AH,00H
+                      	
+  480E  0D0A00        	CRLF:	DB		0DH,0AH,00H
+                      	
+  4811                	MSG_F0:
+  4811  53442D43415244			DB		'SD-CARD INITIALIZE ERROR'
+  4829  00            			DB		00H
+                      			
+  482A                	MSG_F1:
+  482A  4E4F542046494E			DB		'NOT FIND FILE'
+  4837  00            			DB		00H
+                      			
+  4838                	MSG_F3:
+  4838  46494C45204558			DB		'FILE EXIST'
+  4842  00            			DB		00H
+                      			
+  4843                	MSG99:
+  4843  204552524F52  			DB		' ERROR'
+  4849  00            			DB		00H
+                      			
+                      	;**** 1BYTE受信 ****
+                      	;受信DATAをAレジスタにセットしてリターン
+  484A                	RCVBYTE:
+  484A  CD7F48        			CALL	F1CHK 				;PORTC BIT7が1になるまでLOOP
+  484D  DB39          			IN		A,(PPI_B)			;PORTB -> A
+  484F  F5            			PUSH 	AF
+  4850  3E05          			LD		A,05H
+  4852  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 1
+  4854  CD8648        			CALL	F2CHK				;PORTC BIT7が0になるまでLOOP
+  4857  3E04          			LD		A,04H
+  4859  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 0
+  485B  F1            			POP 	AF
+  485C  C9            			RET
+                      			
+                      	;**** 1BYTE送信 ****
+                      	;Aレジスタの内容をPORTA下位4BITに4BITずつ送信
+  485D                	SNDBYTE:
+  485D  F5            			PUSH	AF
+  485E  1F            			RRA
+  485F  1F            			RRA
+  4860  1F            			RRA
+  4861  1F            			RRA
+  4862  E60F          			AND		0FH
+  4864  CD6E48        			CALL	SND4BIT
+  4867  F1            			POP		AF
+  4868  E60F          			AND		0FH
+  486A  CD6E48        			CALL	SND4BIT
+  486D  C9            			RET
+                      	
+                      	;**** 4BIT送信 ****
+                      	;Aレジスタ下位4ビットを送信する
+  486E                	SND4BIT:
+  486E  D338          			OUT		(PPI_A),A
+  4870  3E05          			LD		A,05H
+  4872  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 1
+  4874  CD7F48        			CALL	F1CHK				;PORTC BIT7が1になるまでLOOP
+  4877  3E04          			LD		A,04H
+  4879  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 0
+  487B  CD8648        			CALL	F2CHK
+  487E  C9            			RET
+                      			
+                      	;**** BUSYをCHECK(1) ****
+                      	; 82H BIT7が1になるまでLOP
+  487F  DB3A          	F1CHK:	IN		A,(PPI_C)
+  4881  E680          			AND		80H					;PORTC BIT7 = 1?
+  4883  28FA          			JR		Z,F1CHK
+  4885  C9            			RET
+                      	
+                      	;**** BUSYをCHECK(0) ****
+                      	; 82H BIT7が0になるまでLOOP
+  4886  DB3A          	F2CHK:	IN		A,(PPI_C)
+  4888  E680          			AND		80H					;PORTC BIT7 = 0?
+  488A  20FA          			JR		NZ,F2CHK
+  488C  C9            			RET
+                      	
+  488D                			END
+
