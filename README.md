@@ -28,218 +28,73 @@
 ![MSX_SD](https://github.com/yanataka60/MSX_SD/blob/main/Kicad/MSX_SD_1.jpg)
 
 ## 部品
-### FM-7_SD Rev1.1基板
 |番号|品名|数量|備考|
 | ------------ | ------------ | ------------ | ------------ |
-|J1|2x25Pinコネクタ|1|秋月電子通商 PH-2x40RGなど|
-||J4、J5のいずれか(注1)|||
-|J4|Micro_SD_Card_Kit|1|秋月電子通商 AE-microSD-LLCNV (注2)|
-|J5|MicroSD Card Adapter|1|Arduino等に使われる5V電源に対応したもの (注5)|
-|U1|74LS04|1||
-|U2|74LS30|1||
-|U3|8255|1||
-|U4|Arduino_Pro_Mini_5V|1|(注3)|
-|U5|74LS00|1||
-|C1 C3 C4 C6|積層セラミックコンデンサ 0.1uF|4||
-|C2|電解コンデンサ 16v100uF|1||
-||本体内BOOT-ROMを差し替える場合|||
-||ROM 2716又は2732|1|AT28C16、M2732Aなど|
-||2732変換基板又は24PinICソケット|1|2732を使った場合の切り替え用|
-||3Pトグルスイッチ|1|2732を使った場合の切り替え用|
+||J2、J3のいずれか(注1)|||
+|J2|Micro_SD_Card_Kit|1|秋月電子通商 AE-microSD-LLCNV (注2)|
+|J3|MicroSD Card Adapter|1|Arduino等に使われる5V電源に対応したもの (注4)|
+|D1|1N4148|1||
+|U1|74LS02|1||
+|U2|74LS138|1||
+|U3|27256相当品|1|29C256は可、28C256は不可|
+|U4|8255|1||
+|U5|Arduino_Pro_Mini_5V|1|(注3)|
+|C1～C4|積層セラミックコンデンサ 0.1uF|4||
+|C5|電解コンデンサ 16v100uF|1||
 
-### FM-7_SD Rev2.0基板
-|番号|品名|数量|備考|
-| ------------ | ------------ | ------------ | ------------ |
-|J1|FCN-365P032-AU又はOMRON XC5A-3282-1|1|(注4)|
-||J4、J5のいずれか(注1)|||
-|J4|Micro_SD_Card_Kit|1|秋月電子通商 AE-microSD-LLCNV (注2)|
-|J5|MicroSD Card Adapter|1|Arduino等に使われる5V電源に対応したもの (注5)|
-|U1|74LS04|1||
-|U2|74LS30|1||
-|U3|8255|1||
-|U4|Arduino_Pro_Mini_5V|1|(注3)|
-|U5|74LS00|1||
-|C1 C3 C4 C6|積層セラミックコンデンサ 0.1uF|4||
-|C2|電解コンデンサ 16v100uF|1||
-||本体内BOOT-ROMを差し替える場合|||
-||ROM 2716又は2732|1|AT28C16、M2732Aなど|
-||2732変換基板又は24PinICソケット|1|2732を使った場合の切り替え用|
-||3Pトグルスイッチ|1|2732を使った場合の切り替え用|
-
-### FM-7_SD Rev3.0基板
-|番号|品名|数量|備考|
-| ------------ | ------------ | ------------ | ------------ |
-|J1|2x25Pinコネクタ|1|秋月電子通商 PH-2x40RGなど|
-||J4、J5のいずれか(注1)|||
-|J4|Micro_SD_Card_Kit|1|秋月電子通商 AE-microSD-LLCNV (注2)|
-|J5|MicroSD Card Adapter|1|Arduino等に使われる5V電源に対応したもの (注5)|
-|U1 U7|74LS04|2||
-|U2 U6|74LS30|2||
-|U3|8255|1||
-|U4|Arduino_Pro_Mini_5V|1|(注3)|
-|U5|74LS00|1||
-|C1 C3 C4 C5 C6 C7|積層セラミックコンデンサ 0.1uF|6||
-|C2|電解コンデンサ 16v100uF|1||
-||本体内BOOT-ROMを差し替える場合|||
-||ROM 2716又は2732|1|AT28C16、M2732Aなど|
-||2732変換基板又は24PinICソケット|1|2732を使った場合の切り替え用|
-||3Pトグルスイッチ|1|2732を使った場合の切り替え用|
-
-　　　注1)J4又はJ5のどちらかを選択して取り付けてください。
+　　　注1)J2又はJ3のどちらかを選択して取り付けてください。
 
 　　　注2)秋月電子通商　AE-microSD-LLCNVのJ1ジャンパはショートしてください。
 
 　　　注3)Arduino Pro MiniはA4、A5ピンも使っています。
 
-　　　注4)FCN-365P032-AUは入手困難、OMRON XC5A-3282-1は加工が必要
+　　　注4)MicroSD Card Adapterを使う場合
 
-　　　　　OMRON XC5A-3282-1は、ハウジング内の凸型に出っ張ている部分を台形に近付けるように削ってください。
+　　　　　J3に取り付けます。
 
-![OMRON XC5A32821](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/OMRON%20XC5A32821.JPG)
+　　　　　MicroSD Card Adapterについているピンヘッダを除去してハンダ付けするのが一番確実ですが、J3の穴にMicroSD Card Adapterをぴったりと押しつけ、裏から多めにハンダを流し込むことでハンダ付けをする方法もあります。なお、この方法の時にはしっかりハンダ付けが出来たかテスターで導通を確認しておいた方が安心です。
 
-　　　注5)MicroSD Card Adapterを使う場合
+![MicroSD Card Adapter1](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/MicroSD%20Card%20Adapter.JPG)
 
-　　　　　J5に取り付けます。
+![MicroSD Card Adapter2](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/MicroSD%20Card%20Adapter2.JPG)
 
-　　　　　MicroSD Card Adapterについているピンヘッダを除去してハンダ付けするのが一番確実ですが、J5の穴にMicroSD Card Adapterをぴったりと押しつけ、裏から多めにハンダを流し込むことでハンダ付けをする方法もあります。なお、この方法の時にはしっかりハンダ付けが出来たかテスターで導通を確認しておいた方が安心です。
+![MicroSD Card Adapter3](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/MicroSD%20Card%20Adapter3.JPG)
 
-ハンダ付けに自信のない方はJ4の秋月電子通商　AE-microSD-LLCNVをお使いください。AE-microSD-LLCNVならパワーLED、アクセスLEDが付いています。
-
-![MicroSD Card Adapter1](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/MicroSD%20Card%20Adapter.JPG)
-
-![MicroSD Card Adapter2](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/MicroSD%20Card%20Adapter2.JPG)
-
-![MicroSD Card Adapter3](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/MicroSD%20Card%20Adapter3.JPG)
-
-## BOOT-ROMの差し替えを選択した場合
-　FM-8、FM-7、FM-NEW7でBOOT-ROMの差し替えを選択した場合には、programフォルダ内bootromフォルダにある「FM-7_BOOTROM_SD.bin」を使いますが、Disk-Basicを使うか、使わないかでROMの差し替え方法が変わります。
-
-　FM-8は「FM-7_BOOTROM_SD.bin」をbootrom_FM8フォルダにある「FM-8_BOOTROM_SD.bin」に読み替えてください。
-
-#### 2023.2.17修正 DOS-MODEからの起動は出来ませんでした。運用方法は２通りとなります。
-
-　1)FM-7_SDとCMTだけが使えればよい。(DISK-BASIC、DOS-MODEは使わない)
-
-　　　元のBOOT-ROMを読み出す必要はありません。FM-7_BOOTROM_SD.binをROMライター(TL866II Plus等)を使ってROM 2716のアドレス$0000～$01FFに書き込んでBOOT-ROMのICソケットに装着します。
-
-　2)FM-7_SDとCMTに加えてDISK-BASICは使いたい又は、FM-7_SD、CMT、DISK-BASIC、DOS-MODEのすべてを使いたい。
-
-　　　ROM 2732の前半に元のBOOT-ROMの内容、後半の$0800～$09FFにFM-7_BOOTROM_SD.binとしたバイナリをROMライター(TL866II Plus等)を使って書き込みます。2732変換基板又は24PinICソケットの21Pinを曲げてスイッチで5VとGNDを切り替えられるようにしてBOOT-ROMのICソケットに装着します。
-
-### FM-7 BOOT-ROMの場所
-![boot-rom1](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/FM-7_BOOT-ROM_1.JPG)
-
-![boot-rom2](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/FM-7_BOOT-ROM_2.JPG)
-
-### FM-NEW7 BOOT-ROMの場所
-![boot-rom3](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/NEW-7_BOOT-ROM_1.JPG)
-
-![boot-rom4](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/NEW-7_BOOT-ROM_2.JPG)
-
-### FM-8 BOOT-ROMの場所
-電源ユニットの下です。
-![boot-rom5](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/FM8_BOOT-ROM_1.JPG)
-
-![boot-rom6](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/FM8_BOOT-ROM_2.JPG)
-
-## SD-CARDアクセス初期設定プログラム
-### BOOT-ROMを差し替えた場合
-　programフォルダ内boot_iplフォルダの「@BOOT_IPL_FM-7.bin」をSD-CARDにコピーしてください。
-
-　FM-8の場合は、boot_ipl_FM8フォルダ内の「@BOOT_IPL_FM-8.bin」をSD-CARDにコピーします。なお、「@BOOT_IPL_FM-7.bin」と「@BOOT_IPL_FM-8.bin」の両方がSD-CARDにコピーしてあっても大丈夫です。
-
-　FM-7起動後に「EXEC &HFE02」(又は「EXEC -510」)を実行することでSD-CARDから「@BOOT_IPL_FM-7.bin」がテキストエリアの最初に読み込まれSD-CARDが使えるようBASICコマンドの追加、BIOSへのパッチあて、テキストエリアの再設定が行われます。
-
-### BOOT-ROMを差し替えない場合
-#### FDから起動
-　DISKBASICフォルダのSDINIT_FM7.D77ディスクイメージをFDに書き込むか、SDINIT_FM7.binをFDに書き込んでください。
-
-#### CMTから起動
-　CMTLOADフォルダのSDINIT_FM7.wav(FM8は、SDINIT_FM8.wav)をCMTからロードして実行します。
+## ROMへの書込み
+　Z80フォルダ内のEXT_ROM.binをROMライター(TL866II Plus等)を使って2764又は28C64に書き込みます。
 
 ## Arduinoプログラム
-　Arduino IDEを使ってArduinoフォルダのFM-7_SDフォルダ内FM-7_SD.inoを書き込みます。FM-8も共通のプログラムを使用しています。
+　Arduino IDEを使ってArduinoフォルダのPC-6001mk2_SDフォルダ内PC-6001mk2_SD.inoを書き込みます。
 
 　SdFatライブラリを使用しているのでArduino IDEメニューのライブラリの管理からライブラリマネージャを立ち上げて「SdFat」をインストールしてください。
 
 　「SdFat」で検索すれば見つかります。「SdFat」と「SdFat - Adafruit Fork」が見つかりますが「SdFat」のほうを使っています。
 
-注)Arduinoを基板に直付けしていてもFM-7本体から外していれば書き込めます。
-
-#### 電源が入ったFM-7本体とFM-7_SDを繋げたままArduinoを書き込む場合には、Arduinoに繋ぐシリアルコンバータから絶対に電源を供給しないでください。最悪FM-7本体が破壊される場合があります。
+注)Arduinoを基板に直付けしている場合、Arduinoプログラムを書き込むときは、カートリッジスロットから抜き、74LS04を外したうえで書き込んでください。
 
 ## 接続
-　Rev1.1、Rev3.0をFM-8、FM-7、FM-NEW7で使う場合には本体後ろの50Pin拡張端子から50Pinフラットケーブルで接続します。
+　カートリッジスロットに挿入します。
 
-![connect1](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/CONNECT_1.JPG)
+![cartridge](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/cartridge.jpg)
 
-![connect2](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/CONNECT_2.JPG)
+　カートリッジスロットへの抜き差しに基板のみでは不便です。
 
-　50Pinフラットケーブルは、コネクタのボッチとケーブルの返しが両方上になる側のコネクタを本体に嵌めます。
+　STLフォルダに基板を載せられるトレイの3Dデータを置いたので出力して使うと便利です。
 
-![Cable3](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/Cable3.JPG)
+![Tray](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/TRAY.JPG)
 
-![Cable3](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/Cable1.JPG)
+　PC-6601、PC-6601SRはドライブ数切替スイッチは0として使ってください。
 
-　逆側のコネクタを本体に嵌めると一見嵌っているように見えてもケーブルの返しが基板に当たっていてちゃんと嵌っておらず接触不良を起こしていることがあります。
+![Drive](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/DRIVE.JPG)
 
-#### 悪い例です
-![Cable3](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/Cable2.JPG)
-
-　Rev1.1をFM-77以降、Rev3.0をFM-77で使う場合にはアンフェノール フルピッチへ変換するケーブルの自作が必要です。
-
-　接続ピンは、はせりんさんのサイトが参考になります。
-
-　http://haserin09.la.coocan.jp/difference.html
-
-## SD-CARD
+### SD-CARD
 　FAT16又はFAT32が認識できます。
 
-　ルートに置かれた拡張子が「.BIM」のCMTベタ形式ファイルのみLOAD、SAVEできます。(以外のファイル、フォルダも表示されますが読み書き出来ません)
+　ルートに置かれた拡張子が「.P6T」又は「.CAS」の形式ファイルのみ認識できます。(以外のファイル、フォルダも表示されますがLOAD実行の対象になりません)
 
 　ファイル名は拡張子を除いて32文字まで、ただし半角カタカナ、及び一部の記号はArduinoが認識しないので使えません。パソコンでファイル名を付けるときはアルファベット、数字および空白でファイル名をつけてください。
 
-## T77ファイルの扱い方
-　T77ファイルはそのまま使えません。
-
-　Apolloさんが公開してくださっている「T77DEC」を使ってCMTベタ形式に変換して使います。
-
-　http://retropc.net/apollo/
-
-　変換例)T77DEC TEST.T77 -d[CR]
-
-　を実行するとFULLDUMP.BINというファイルが出来上がるので拡張子を.bimに変えて使います。
-
-![batch_file](https://github.com/yanataka60/FM-7_SD/blob/main/jpeg/batch_file.jpg)
-
-　こんなバッチファイルを作ると便利です。
-
-　bimファイルをT77に戻すにはBET2T77フォルダ内の「BET2T77.exe」を使います。
-
-　「BET2T77.exe」を起動し、開いたウィンドウにbimファイルをドロップすればT77ファイルが作成されます。
-
-## 起動手順
-### ROM-BASIC(BOOT-ROM差し替え済の場合)
-　1　電源を入れます。
-
-　2　この時点ではCMTが使えるROM-BASICが起動しています。
-
-　3　「EXEC &HFE02」(又は「EXEC -510」)を実行します。
-
-　4　「FM-7_SD READY OK!」と表示されたらSD-CARDにアクセスできます。BASICのフリーエリアは947Byte程減少します。
-
-### DISK-BASIC
-　1　電源を入れ、DISK-BASICを起動します。
-
-　2　作成したFDの中にある「SDINIT」をロードし、実行します。
-
-　　　LOADM"SDINIT"してからEXEC &H6000又はLOADM"SDINIT",,R
-
-　3　「FM-7_SD READY OK!」と表示されたらSD-CARDにアクセスできます。
-
-　4　LOADM"SDINIT",,RをSTARTUPとして保存し、AUTOUTYで自動実行を設定すれば手間が省けます。
-
-　5　SDからLOAD、SAVEする場合にはファイルデスクリプタ「CAS0:」が必ず必要になります。
+　起動直後の画面は横32文字表示です。拡張子を含めて27文字以下にしたほうが画面の乱れません。
 
 ## 使い方
 　BASICから以下のコマンドが使えます。
