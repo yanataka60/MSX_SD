@@ -213,13 +213,13 @@ CALL SETSでセットしたDOSファイル名のファイルにBASICプログラ
 ファイル名は省略できません。6文字以内でファイル名を指定してください。
 
 #### 例)
-　　CALL SSAVE("test")[CR]     :ファイル名testとしてSAVEされます。
+　　CALL SSAVE("test")[CR]　　　:ファイル名testとしてSAVEされます。
 
-　　CALL SSAVE("TEST")[CR]     :ファイル名TESTとしてSAVEされます。
+　　CALL SSAVE("TEST")[CR]　　　:ファイル名TESTとしてSAVEされます。
 
-　　CALL SSAVE(test)[CR]       :ファイル名TESTとしてSAVEされます。
+　　CALL SSAVE(test)[CR]　　　　:ファイル名TESTとしてSAVEされます。
 
-　　CALL SSAVE(TEST)[CR]       :ファイル名TESTとしてSAVEされます。
+　　CALL SSAVE(TEST)[CR]　　　　:ファイル名TESTとしてSAVEされます。
 
 カセットテープと同じようにSSAVE命令等で書き込みが行われる度にDOSファイル名で指定したファイルにBASICプログラムを追記します。
 
