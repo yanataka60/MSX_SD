@@ -1,3 +1,5 @@
+;2023.5.22 キースキャンルーチンにWAITを追加
+
 CHGET		EQU		009FH			;1文字入力
 CHPUT		EQU		00A2H			;1文字表示
 BEEP		EQU		00C0H			;BEEP
@@ -470,6 +472,18 @@ DL5:	LD		HL,MSG_KEY1			;HIT ANT KEY表示
 		CALL	STRPR
 		CALL	MONCLF
 DL6:	CALL	KSCAN				;KEY SCAN
+		
+		PUSH	AF					;WAIT
+		PUSH	DE
+        LD      A,20H
+LOP1:   LD      D,0FFH
+LOP2:   DEC     D       
+        JP      NZ,LOP2    
+        DEC     A       
+        JP      NZ,LOP1
+		POP		DE
+		POP		AF
+
 		JR		Z,DL6
 		CP		1BH					;ESCで打ち切り
 		JR		Z,DL7
