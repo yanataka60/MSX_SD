@@ -1,4 +1,6 @@
 ;2023.5.22 キースキャンルーチンにWAITを追加
+;2023.5.28 _SBLOAD(,R)、_GOTOコマンドからのリターン時にHLレジスタを復帰していなかったバグを修正
+;           _GOTOコマンドで数値省略時にマルチステートメントに対応していなかったバグを修正
 
 CHGET		EQU		009FH			;1文字入力
 CHPUT		EQU		00A2H			;1文字表示
@@ -15,9 +17,8 @@ HLSAVE		EQU		0F7C5H			;Math-pack用ワークエリアを流用　HLレジスタ退避用
 SADRS		EQU		HLSAVE+2		;Math-pack用ワークエリアを流用　LOAD、SAVEスタートアドレス
 EADRS		EQU		HLSAVE+4		;Math-pack用ワークエリアを流用　LOAD、SAVEエンドアドレス
 GADRS		EQU		HLSAVE+6		;Math-pack用ワークエリアを流用　マシン語実行アドレス
-SLOT		EQU		HLSAVE+8
-EXEFLG		EQU		HLSAVE+15		;Math-pack用ワークエリアを流用　マシン語自動実行用
-LBUF		EQU		HLSAVE+18		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+EXEFLG		EQU		HLSAVE+8		;Math-pack用ワークエリアを流用　マシン語自動実行用
+LBUF		EQU		HLSAVE+21		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
 PROCNM		EQU		0FD89H			;CALLコマンド文字列
 
 ;MSX
@@ -175,6 +176,8 @@ GETNUM:	LD		A,(DE)
 		JR		Z,GN1
 		CP		00H					;パラメータなし
 		JR		Z,GN0
+		CP		3AH					;パラメータなし
+		JR		Z,GN0
 		CP		11H					;11H～1BHなら0～9の整数
 		JR		C,GN00				;数値の識別コードなしへ
 		CP		1BH
@@ -182,6 +185,7 @@ GETNUM:	LD		A,(DE)
 GN00:	SCF							;数値の識別コードなし CF=1
 		JR		GN2
 GN0:	LD		HL,(GADRS)			;HL <- (GADRS)　_DUMP用パラメータ無しなら続きアドレスをセット
+		DEC		DE
 		JR		GN11
 		
 GN01:	INC		DE					;10～255の整数
@@ -345,7 +349,8 @@ GOTO:
 		EX		DE,HL
 		CALL	GETNUM				;HL <- 数値
 		PUSH	AF
-GT3:	LD		A,(DE)				;00H又は「:」以外は読み飛ばし
+GT3:
+		LD		A,(DE)				;00H又は「:」以外は読み飛ばし
 		CP		3AH					;「:」
 		JR		Z,GT5
 		CP		00H
@@ -357,27 +362,27 @@ GT5:	LD		(HLSAVE),DE			;次文先頭位置を退避
 		JP		C,SEND				;数値が取得できなかったらERRORで終了
 
 		PUSH	HL
-		LD		A,0CDH				;スロットを切り替えて実行する用
-		LD		(SLOT),A
-		LD		HL,0024H
-		LD		(SLOT+1),HL
-		LD		A,2AH
-		LD		(SLOT+3),A
-		LD		HL,HLSAVE			;文終了位置(00H)又は「:」の位置を復帰
-		LD		(SLOT+4),HL
-		LD		A,0AFH
-		LD		(SLOT+6),A
-		LD		A,0CDH				;EXEFLGに「CD」を書き込む
-		LD		(EXEFLG),A
-		LD		A,0C9H				;EXEFLG+3に「C9」を書き込む
-		LD		(EXEFLG+3),A
+		LD		DE,EXEFLG
+		LD		HL,EXEST
+		LD		BC,EXEEND-EXEST
+		LDIR
 		POP		HL
-		LD		(EXEFLG+1),HL		;実行アドレスをセット
+		LD		(EXEFLG+8),HL		;実行アドレスをセット
+		
 		LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
 		LD		A,(0FCC1H)
 		AND		03H
-		JP		SLOT				;ジャンプ
+		JP		EXEFLG				;ジャンプ
+
+EXEST:
+		CALL	0024H				;スロットを切り替えて実行する用
+		LD		HL,(HLSAVE)
+		PUSH	HL
+		CALL	0000H
+		POP		HL
+		XOR		A
 		RET
+EXEEND:
 
 PSDIR:
 ;************ Fコマンド DIRLIST **********************
@@ -771,8 +776,8 @@ PSBL3:
 		JR		Z,PSBL31
 		CP		72H
 		JR		NZ,PSBL32
-PSBL31:	LD		A,0CDH
-		LD		HL,EXEFLG			;自動実行するならEXEFLGに「CD」、しないなら「00」
+PSBL31:	LD		A,01H
+		LD		HL,EXEFLG			;自動実行するならEXEFLGに「01」、しないなら「00」
 		LD		(HL),A
 		XOR		A
 		CALL	SNDBYTE
@@ -847,29 +852,21 @@ PSBL6:	CALL	RCVBYTE				;1Byte受信
 		JR		NZ,PSBL6
 		LD		HL,EXEFLG
 		LD		A,(HL)
-		CP		0CDH				;EXEFLGが「CD」なら直後にGADRSを書き込む
+		CP		01H				;EXEFLGが「01」ならGADRSを書き込む
 		JR		NZ,PSBL61			;でなければ終了
 
-		LD		A,0CDH				;スロットを切り替えて実行する用
-		LD		(SLOT),A
-		LD		HL,0024H
-		LD		(SLOT+1),HL
-		LD		A,2AH
-		LD		(SLOT+3),A
-		LD		HL,HLSAVE			;文終了位置(00H)又は「:」の位置を復帰
-		LD		(SLOT+4),HL
-		LD		A,0AFH
-		LD		(SLOT+6),A
-		LD		A,0C9H				;EXEFLG+3に「C9」を書き込む
-		LD		(EXEFLG+3),A
-
+		LD		DE,EXEFLG
+		LD		HL,EXEST
+		LD		BC,EXEEND-EXEST
+		LDIR
 		LD		HL,(GADRS)
-		LD		(EXEFLG+1),HL		;自動実行アドレスをセット
+		LD		(EXEFLG+8),HL		;自動実行アドレスをセット
+		
 		LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
 		LD		A,(0FCC1H)
 		AND		03H
-		JP		SLOT				;(GADRS)へジャンプ
-		RET
+		JP		EXEFLG				;(GADRS)へジャンプ
+
 PSBL61:	JP		SRET
 
 ;*********************************** マシン語セーブ ********************************
