@@ -2,6 +2,7 @@
                       	;2023.5.22 キースキャンルーチンにWAITを追加
                       	;2023.5.28 _SBLOAD(,R)、_GOTOコマンドからのリターン時にHLレジスタを復帰していなかったバグを修正
                       	;           _GOTOコマンドで数値省略時にマルチステートメントに対応していなかったバグを修正
+                      	;            マシン語自動実行用ワークエリア調整
                       	
   009F                	CHGET		EQU		009FH			;1文字入力
   00A2                	CHPUT		EQU		00A2H			;1文字表示
@@ -18,8 +19,8 @@
   F7C7                	SADRS		EQU		HLSAVE+2		;Math-pack用ワークエリアを流用　LOAD、SAVEスタートアドレス
   F7C9                	EADRS		EQU		HLSAVE+4		;Math-pack用ワークエリアを流用　LOAD、SAVEエンドアドレス
   F7CB                	GADRS		EQU		HLSAVE+6		;Math-pack用ワークエリアを流用　マシン語実行アドレス
-  F7CD                	EXEFLG		EQU		HLSAVE+8		;Math-pack用ワークエリアを流用　マシン語自動実行用
-  F7DA                	LBUF		EQU		HLSAVE+21		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+  F7CD                	LBUF		EQU		HLSAVE+8		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+  FB04                	EXEFLG		EQU		0FB04H			;RS-232C用ワークエリアを流用　マシン語自動実行用
   FD89                	PROCNM		EQU		0FD89H			;CALLコマンド文字列
                       	
                       	;MSX
@@ -363,17 +364,17 @@
   41E6  DA5A40        			JP		C,SEND				;数値が取得できなかったらERRORで終了
                       	
   41E9  E5            			PUSH	HL
-  41EA  11CDF7        			LD		DE,EXEFLG
+  41EA  1104FB        			LD		DE,EXEFLG
   41ED  210442        			LD		HL,EXEST
   41F0  010D00        			LD		BC,EXEEND-EXEST
   41F3  EDB0          			LDIR
   41F5  E1            			POP		HL
-  41F6  22D5F7        			LD		(EXEFLG+8),HL		;実行アドレスをセット
+  41F6  220CFB        			LD		(EXEFLG+8),HL		;実行アドレスをセット
                       			
   41F9  210040        			LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
   41FC  3AC1FC        			LD		A,(0FCC1H)
   41FF  E603          			AND		03H
-  4201  C3CDF7        			JP		EXEFLG				;ジャンプ
+  4201  C304FB        			JP		EXEFLG				;ジャンプ
                       	
   4204                	EXEST:
   4204  CD2400        			CALL	0024H				;スロットを切り替えて実行する用
@@ -439,7 +440,7 @@
   4264  A7            			AND		A					;00以外ならERROR
   4265  C29A46        			JP		NZ,SDERR
                       	
-  4268  21DAF7        	DL1:	LD		HL,LBUF
+  4268  21CDF7        	DL1:	LD		HL,LBUF
   426B  CD3B48        	DL2:	CALL	RCVBYTE				;'00H'を受信するまでを一行とする
   426E  A7            			AND		A
   426F  2810          			JR		Z,DL3
@@ -453,20 +454,20 @@
   427E  23            			INC		HL
   427F  18EA          			JR		DL2
   4281  3600          	DL3:	LD		(HL),00H
-  4283  21DAF7        			LD		HL,LBUF				;'00H'を受信したら一行分を表示して改行
+  4283  21CDF7        			LD		HL,LBUF				;'00H'を受信したら一行分を表示して改行
   4286  CD8F47        			CALL	STRPR
   4289  CD8647        	DL33:	CALL	MONCLF
   428C  18DA          			JR		DL1
   428E  CD3B48        	DL4:	CALL	RCVBYTE				;状態取得(00H=OK)
   4291  185D          			JR		DLRET
                       	
-  4293  21DAF7        	DL9:	LD		HL,LBUF				;選択したファイルネームを再度取得
+  4293  21CDF7        	DL9:	LD		HL,LBUF				;選択したファイルネームを再度取得
   4296  CD3B48        	DL91:	CALL	RCVBYTE
   4299  77            			LD		(HL),A
   429A  FE00          			CP		00H
   429C  23            			INC		HL
   429D  20F7          			JR		NZ,DL91
-  429F  21DAF7        			LD		HL,LBUF				;取得したファイルネームを表示
+  429F  21CDF7        			LD		HL,LBUF				;取得したファイルネームを表示
   42A2  CD8F47        			CALL	STRPR
   42A5  21B947        			LD		HL,MSG3				;「LOAD FILE SET OK!」を表示
   42A8  CD8F47        			CALL	STRPR
@@ -601,7 +602,7 @@
   4393  C29A46        			JP		NZ,SDERR
                       	
   4396  0606          			LD		B,06H
-  4398  21DAF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  4398  21CDF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
   439B  CD3B48        	PSL5:	CALL	RCVBYTE
   439E  77            			LD		(HL),A
   439F  23            			INC		HL
@@ -610,7 +611,7 @@
   43A4  77            			LD		(HL),A
   43A5  21CD47        			LD		HL,MSG4				;「Loading 」を表示
   43A8  CD8F47        			CALL	STRPR
-  43AB  21DAF7        			LD		HL,LBUF				;ファイルネームを表示
+  43AB  21CDF7        			LD		HL,LBUF				;ファイルネームを表示
   43AE  CD8F47        			CALL	STRPR
   43B1  CD8647        			CALL	MONCLF
                       			
@@ -675,7 +676,7 @@
   4410  C29A46        			JP		NZ,SDERR
                       	
   4413  0606          			LD		B,06H
-  4415  21DAF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  4415  21CDF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
   4418  CD3B48        	PSS5:	CALL	RCVBYTE
   441B  77            			LD		(HL),A
   441C  23            			INC		HL
@@ -684,7 +685,7 @@
   4421  77            			LD		(HL),A
   4422  21EA47        			LD		HL,MSG6				;「Saving 」を表示
   4425  CD8F47        			CALL	STRPR
-  4428  21DAF7        			LD		HL,LBUF				;ファイルネームを表示
+  4428  21CDF7        			LD		HL,LBUF				;ファイルネームを表示
   442B  CD8F47        			CALL	STRPR
   442E  CD8647        			CALL	MONCLF
                       			
@@ -743,7 +744,7 @@
                       			
   4483  C5            			PUSH	BC
   4484  0621          			LD		B,21H				;ファイルネーム検索文字列33文字分を送信
-  4486  21CDF7        			LD		HL,EXEFLG			;「,R」オプション用のEXEFLGをクリア
+  4486  2104FB        			LD		HL,EXEFLG			;「,R」オプション用のEXEFLGをクリア
   4489  AF            			XOR		A
   448A  77            			LD		(HL),A
   448B  1A            	PSBL1:	LD		A,(DE)
@@ -778,7 +779,7 @@
   44B5  FE72          			CP		72H
   44B7  200C          			JR		NZ,PSBL32
   44B9  3E01          	PSBL31:	LD		A,01H
-  44BB  21CDF7        			LD		HL,EXEFLG			;自動実行するならEXEFLGに「01」、しないなら「00」
+  44BB  2104FB        			LD		HL,EXEFLG			;自動実行するならEXEFLGに「01」、しないなら「00」
   44BE  77            			LD		(HL),A
   44BF  AF            			XOR		A
   44C0  CD4E48        			CALL	SNDBYTE
@@ -802,7 +803,7 @@
   44E1  C29A46        			JP		NZ,SDERR
                       	
   44E4  0606          			LD		B,06H
-  44E6  21DAF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  44E6  21CDF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
   44E9  CD3B48        	PSBL5:	CALL	RCVBYTE
   44EC  77            			LD		(HL),A
   44ED  23            			INC		HL
@@ -811,7 +812,7 @@
   44F2  77            			LD		(HL),A
   44F3  21CD47        			LD		HL,MSG4				;「Loading 」を表示
   44F6  CD8F47        			CALL	STRPR
-  44F9  21DAF7        			LD		HL,LBUF				;ファイルネームを表示
+  44F9  21CDF7        			LD		HL,LBUF				;ファイルネームを表示
   44FC  CD8F47        			CALL	STRPR
   44FF  3E2C          			LD		A,','
   4501  CDA200        			CALL	CHPUT
@@ -851,22 +852,22 @@
   4550  E1            			POP		HL
   4551  13            			INC		DE
   4552  20F4          			JR		NZ,PSBL6
-  4554  21CDF7        			LD		HL,EXEFLG
+  4554  2104FB        			LD		HL,EXEFLG
   4557  7E            			LD		A,(HL)
   4558  FE01          			CP		01H				;EXEFLGが「01」ならGADRSを書き込む
   455A  201C          			JR		NZ,PSBL61			;でなければ終了
                       	
-  455C  11CDF7        			LD		DE,EXEFLG
+  455C  1104FB        			LD		DE,EXEFLG
   455F  210442        			LD		HL,EXEST
   4562  010D00        			LD		BC,EXEEND-EXEST
   4565  EDB0          			LDIR
   4567  2ACBF7        			LD		HL,(GADRS)
-  456A  22D5F7        			LD		(EXEFLG+8),HL		;自動実行アドレスをセット
+  456A  220CFB        			LD		(EXEFLG+8),HL		;自動実行アドレスをセット
                       			
   456D  210040        			LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
   4570  3AC1FC        			LD		A,(0FCC1H)
   4573  E603          			AND		03H
-  4575  C3CDF7        			JP		EXEFLG				;(GADRS)へジャンプ
+  4575  C304FB        			JP		EXEFLG				;(GADRS)へジャンプ
                       	
   4578  C37340        	PSBL61:	JP		SRET
                       	
@@ -920,7 +921,7 @@
                       			
                       	
   45D5  0606          			LD		B,06H
-  45D7  21DAF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
+  45D7  21CDF7        			LD		HL,LBUF				;ファイルネーム6文字を取得
   45DA  CD3B48        	PSBS22:	CALL	RCVBYTE
   45DD  77            			LD		(HL),A
   45DE  23            			INC		HL
@@ -929,7 +930,7 @@
   45E3  77            			LD		(HL),A
   45E4  21EA47        			LD		HL,MSG6				;「Saving 」を表示
   45E7  CD8F47        			CALL	STRPR
-  45EA  21DAF7        			LD		HL,LBUF				;ファイルネームを表示
+  45EA  21CDF7        			LD		HL,LBUF				;ファイルネームを表示
   45ED  CD8F47        			CALL	STRPR
   45F0  CD8647        			CALL	MONCLF
                       			

@@ -1,6 +1,7 @@
 ;2023.5.22 キースキャンルーチンにWAITを追加
 ;2023.5.28 _SBLOAD(,R)、_GOTOコマンドからのリターン時にHLレジスタを復帰していなかったバグを修正
 ;           _GOTOコマンドで数値省略時にマルチステートメントに対応していなかったバグを修正
+;            マシン語自動実行用ワークエリア調整
 
 CHGET		EQU		009FH			;1文字入力
 CHPUT		EQU		00A2H			;1文字表示
@@ -17,8 +18,8 @@ HLSAVE		EQU		0F7C5H			;Math-pack用ワークエリアを流用　HLレジスタ退避用
 SADRS		EQU		HLSAVE+2		;Math-pack用ワークエリアを流用　LOAD、SAVEスタートアドレス
 EADRS		EQU		HLSAVE+4		;Math-pack用ワークエリアを流用　LOAD、SAVEエンドアドレス
 GADRS		EQU		HLSAVE+6		;Math-pack用ワークエリアを流用　マシン語実行アドレス
-EXEFLG		EQU		HLSAVE+8		;Math-pack用ワークエリアを流用　マシン語自動実行用
-LBUF		EQU		HLSAVE+21		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+LBUF		EQU		HLSAVE+8		;Math-pack用ワークエリアを流用　行バッファ及び自動実行文字列格納先
+EXEFLG		EQU		0FB04H			;RS-232C用ワークエリアを流用　マシン語自動実行用
 PROCNM		EQU		0FD89H			;CALLコマンド文字列
 
 ;MSX
