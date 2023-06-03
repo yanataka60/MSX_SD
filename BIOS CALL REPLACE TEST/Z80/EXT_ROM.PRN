@@ -1256,6 +1256,7 @@
   4886  20FA          			JR		NZ,F2CHK
   4888  C9            			RET
                       	
+                      	;****************** EXTROM2.sをアセンブルしたコードを置いてあります ********************
   4889                	TSSTART:
   4889  C301FEC309FEC3			DB 0C3H,001H,0FEH,0C3H,009H,0FEH,0C3H,000H,000H,0C3H,000H,000H,0C3H,000H,000H,0C3H
   4899  0000F33E48CD13			DB 000H,000H,0F3H,03EH,048H,0CDH,013H,0FEH,0AFH,0C9H,03EH,049H,0CDH,02DH,0FEH,0CDH
