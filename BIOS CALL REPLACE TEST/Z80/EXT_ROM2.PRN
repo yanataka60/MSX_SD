@@ -1,0 +1,94 @@
+			  Z80 ASSEMBLER - ZASM VER 1.6
+                      	;MSX
+  0038                	PPI_A		EQU		038H
+  0039                	PPI_B		EQU		PPI_A+1
+  003A                	PPI_C		EQU		PPI_A+2
+  003B                	PPI_R		EQU		PPI_A+3
+                      	
+  FDEF                				ORG		0FDEFH
+                      	
+  FDEF  C301FE        	TAPION:		JP		READHEAD			;00E1H
+  FDF2  C309FE        	TAPIN:		JP		READ1BYTE			;00E4H
+  FDF5  C30000        	TAPOON:		JP		0000H				;00EAH
+  FDF8  C30000        	TAPOUT:		JP		0000H				;00EDH
+  FDFB  C30000        	TAPOOF:		JP		0000H				;00F0H
+  FDFE  C30000        	TDIR:		JP		0000H
+                      	
+                      	
+  FE01                	READHEAD:
+  FE01  F3            				DI
+  FE02  3E48          				LD		A,48H
+  FE04  CD13FE        				CALL	STCD
+  FE07  AF            				XOR		A
+  FE08  C9            				RET
+                      				
+  FE09                	READ1BYTE:
+  FE09  3E49          				LD		A,49H				;READ1BYTE コマンド49Hを送信
+  FE0B  CD2DFE        				CALL	SNDBYTE
+  FE0E  CD1AFE        				CALL	RCVBYTE				;1Byteのみ受信
+  FE11  B7            				OR		A
+  FE12  C9            				RET
+                      	
+                      	
+                      	;**** コマンド送信 (IN:A コマンドコード)****
+  FE13  CD2DFE        	STCD:	CALL	SNDBYTE				;Aレジスタのコマンドコードを送信
+  FE16  CD1AFE        			CALL	RCVBYTE				;状態取得(00H=OK)
+  FE19  C9            			RET
+                      	
+                      	;**** 1BYTE受信 ****
+                      	;受信DATAをAレジスタにセットしてリターン
+  FE1A                	RCVBYTE:
+  FE1A  CD4FFE        			CALL	F1CHK 				;PORTC BIT7が1になるまでLOOP
+  FE1D  DB39          			IN		A,(PPI_B)			;PORTB -> A
+  FE1F  F5            			PUSH 	AF
+  FE20  3E05          			LD		A,05H
+  FE22  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 1
+  FE24  CD56FE        			CALL	F2CHK				;PORTC BIT7が0になるまでLOOP
+  FE27  3E04          			LD		A,04H
+  FE29  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 0
+  FE2B  F1            			POP 	AF
+  FE2C  C9            			RET
+                      			
+                      	;**** 1BYTE送信 ****
+                      	;Aレジスタの内容をPORTA下位4BITに4BITずつ送信
+  FE2D                	SNDBYTE:
+  FE2D  F5            			PUSH	AF
+  FE2E  1F            			RRA
+  FE2F  1F            			RRA
+  FE30  1F            			RRA
+  FE31  1F            			RRA
+  FE32  E60F          			AND		0FH
+  FE34  CD3EFE        			CALL	SND4BIT
+  FE37  F1            			POP		AF
+  FE38  E60F          			AND		0FH
+  FE3A  CD3EFE        			CALL	SND4BIT
+  FE3D  C9            			RET
+                      	
+                      	;**** 4BIT送信 ****
+                      	;Aレジスタ下位4ビットを送信する
+  FE3E                	SND4BIT:
+  FE3E  D338          			OUT		(PPI_A),A
+  FE40  3E05          			LD		A,05H
+  FE42  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 1
+  FE44  CD4FFE        			CALL	F1CHK				;PORTC BIT7が1になるまでLOOP
+  FE47  3E04          			LD		A,04H
+  FE49  D33B          			OUT		(PPI_R),A			;PORTC BIT2 <- 0
+  FE4B  CD56FE        			CALL	F2CHK
+  FE4E  C9            			RET
+                      			
+                      	;**** BUSYをCHECK(1) ****
+                      	; 82H BIT7が1になるまでLOP
+  FE4F  DB3A          	F1CHK:	IN		A,(PPI_C)
+  FE51  E680          			AND		80H					;PORTC BIT7 = 1?
+  FE53  28FA          			JR		Z,F1CHK
+  FE55  C9            			RET
+                      	
+                      	;**** BUSYをCHECK(0) ****
+                      	; 82H BIT7が0になるまでLOOP
+  FE56  DB3A          	F2CHK:	IN		A,(PPI_C)
+  FE58  E680          			AND		80H					;PORTC BIT7 = 0?
+  FE5A  20FA          			JR		NZ,F2CHK
+  FE5C  C9            			RET
+                      	
+  FE5D                			END
+
