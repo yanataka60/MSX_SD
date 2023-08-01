@@ -53,6 +53,9 @@ PPI_R		EQU		PPI_A+3
 ;_SSAVE				46H
 ;_SBSAVE			47H
 
+		ORG		0000H
+		NOP
+		
         ORG		4000H
 
 		DB		'A','B'				;拡張ROM認識コード
@@ -369,7 +372,7 @@ GT5:	LD		(HLSAVE),DE			;次文先頭位置を退避
 		LDIR
 		POP		HL
 		LD		(EXEFLG+8),HL		;実行アドレスをセット
-		
+
 		LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
 		LD		A,(0FCC1H)
 		AND		03H

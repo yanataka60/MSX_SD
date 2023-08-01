@@ -54,6 +54,9 @@
                       	;_SSAVE				46H
                       	;_SBSAVE			47H
                       	
+  0000                			ORG		0000H
+  0000  00            			NOP
+                      			
   4000                	        ORG		4000H
                       	
   4000  4142          			DB		'A','B'				;拡張ROM認識コード
@@ -370,7 +373,7 @@
   41F3  EDB0          			LDIR
   41F5  E1            			POP		HL
   41F6  220CFB        			LD		(EXEFLG+8),HL		;実行アドレスをセット
-                      			
+                      	
   41F9  210040        			LD		HL,4000H			;ページ1(4000H～7FFFH)をメインROMと同じスロットにする
   41FC  3AC1FC        			LD		A,(0FCC1H)
   41FF  E603          			AND		03H
