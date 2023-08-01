@@ -68,7 +68,7 @@
 ![MicroSD Card Adapter3](https://github.com/yanataka60/PC-6001mk2_SD/blob/main/JPEG/MicroSD%20Card%20Adapter3.JPG)
 
 ## ROMへの書込み
-　Z80フォルダ内のEXT_ROM.binをROMライター(TL866II Plus等)を使って27256又は29C256のアドレス4000Hからに書き込みます。
+　Z80フォルダ内のEXT_ROM.binをROMライター(TL866II Plus等)を使って27256又は29C256に書き込みます。
 
 ## Arduinoプログラム
 　Arduino IDEを使ってArduinoフォルダのMSX_SDフォルダ内MSX_SD.inoを書き込みます。
@@ -319,7 +319,7 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 　なお、機械語多段ロードのアプリケーションでもBIOSのCMT関連ルーチンをコールせず、独自の特殊フォーマットでCMTから読み込んでいるものは対処しようがないので読み込めません。
 
 ### ROMへの書込み
-　BIOS CALL REPLACE TESTフォルダ内Z80フォルダ内のEXT_ROM.binをROMライター(TL866II Plus等)を使って27256又は29C256のアドレス4000Hからに書き込みます。
+　BIOS CALL REPLACE TESTフォルダ内Z80フォルダ内のEXT_ROM.binをROMライター(TL866II Plus等)を使って27256又は29C256に書き込みます。
 
 　同ファイルにあるEXT_ROM2.sはアセンブル後のコードをEXT_ROM.binに含めてあります。
 
@@ -372,3 +372,5 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 　　　　マシン語自動実行用ワークエリア調整
 
 2023.6.3 機械語多段ロードでBIOSをコールしているプログラムへの対応【テストバージョン】をアップした。
+
+2023.8.2 ROMへの書込みにアドレス0000Hからで済むよう変更した。
