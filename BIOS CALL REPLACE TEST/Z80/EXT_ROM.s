@@ -55,6 +55,9 @@ PPI_R		EQU		PPI_A+3
 ;_SBSAVE			47H
 ;READ1BYTE			48H
 
+		ORG		0000H
+		NOP
+		
         ORG		4000H
 
 		DB		'A','B'				;拡張ROM認識コード

@@ -56,6 +56,9 @@
                       	;_SBSAVE			47H
                       	;READ1BYTE			48H
                       	
+  0000                			ORG		0000H
+  0000  00            			NOP
+                      			
   4000                	        ORG		4000H
                       	
   4000  4142          			DB		'A','B'				;拡張ROM認識コード
