@@ -353,7 +353,6 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 
 ![JIGSAW SET](https://github.com/yanataka60/MSX_SD/blob/main/JPEG/JIGSAW%20SET.jpg)
 
-　
 
 ### レトロPC用ビットマップコンバーター TINY Bitmap Converterで生成された画像のロード
 　TINY野郎さんのTINY Bitmap Converterで作られたCASファイルをMSX_SDで読み込むためのパッチ当てプログラムを作ってみました。
@@ -372,6 +371,12 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 
 　　GAZOU_SD.casが作成される。
 
+#### やっていること
+　TINY Bitmap ConverterでMSX用に生成されたCASファイルはBASICで書かれたローダーの後ろに画像データがあります。
+
+　BASICで書かれたローダーはDATA文で読み込んだ機械語をメモリに書き込んで実行していますが、DATA文なのでCAS2SD_CHECKを使ってもMSX_SD用にパッチ当てが出来ません。
+
+　そこでDATA文に書かれたCMTルーチンコール用の機械語をSD用に置き換えています。
 
 ## 謝辞
 　基板の作成に当たり以下のデータを使わせていただきました。ありがとうございます。
