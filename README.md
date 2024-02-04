@@ -355,6 +355,24 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 
 　
 
+### レトロPC用ビットマップコンバーター TINY Bitmap Converterで生成された画像のロード
+　TINY野郎さんのTINY Bitmap Converterで作られたCASファイルをMSX_SDで読み込むためのパッチ当てプログラムを作ってみました。
+
+　デスクトップ等適当な場所にBIOS CALL REPLACE TESTフォルダ内の「TINYBMPCONV_MSX_SD_CONV.exe」をコピーしてダブルクリックで起動させてください。
+
+　次にSD用パッチを当てたいCASファイルをTINYBMPCONV_MSX_SD_CONVにドラッグアンドドロップしてください。
+
+　ドロップされた元のCASファイルと同じフォルダに元のCASファイルのファイルネームに「_SD」を付加したCASファイルを作成します。
+
+　TINY Bitmap ConverterでMSX用に生成されたCASファイル以外をドロップしても多分何も作成されません。
+
+例)
+
+　「GAZOU.cas」をドラッグアンドドロップ
+
+　　GAZOU_SD.casが作成される。
+
+
 ## 謝辞
 　基板の作成に当たり以下のデータを使わせていただきました。ありがとうございます。
 
@@ -382,3 +400,5 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 2023.8.2 ROMへの書込みにアドレス0000Hからで済むよう変更した。
 
 2024.1.15 SDカードは8GB以下が望ましいことを追記。
+
+2024.2.4 TINY Bitmap Converter用パッチ当てプログラムを作成。
