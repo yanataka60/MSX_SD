@@ -310,9 +310,9 @@ CALL SETSでセットしたDOSファイル名のファイルに開始アドレ�
 
 　(2024.3.13) SD-CARDにアクセスしていない時に電源が入ったままでSD-CARDを抜くと再度SD-CARDを挿入してもSD-CARDにアクセスできない問題を解消しました。(Arduinoを最新版に書き換えてください)
 
-　再度SD-CARDを挿入した後、_SDIR、_SETL、_SETS等でSD-CARDに3回ほどアクセスすれば復旧します。
+　再度SD-CARDを挿入した後、_SDIR、_SETL、_SETS、_SSAVE、_SBSAVE等でSD-CARDに3回ほどアクセスすれば復旧します。
 
-　_SLOAD、_SBLOAD、_SSAVE、_SBSAVEでも復旧しますが、_SDIR、_SETL、_SETS等DOSファイル名をセットするところから復旧させることをお勧めします。
+　_SLOAD、_SBLOADでも復旧しますが、_SDIR、_SETL等DOSファイル名をセットするところから復旧させることをお勧めします。
 
 
 ## 機械語多段ロードでBIOSをコールしているプログラムへの対応【テストバージョン】
