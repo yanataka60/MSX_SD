@@ -1,3 +1,6 @@
+//2024. 3.13 sd-card再挿入時の初期化処理を追加
+//2024. 5.18 エラー処理が通常版と異なっていた部分を修正
+//
 #include "SdFat.h"
 #include <SPI.h>
 SdFat SD;
@@ -28,6 +31,19 @@ boolean eflg;
 #define PA2PIN          (18)
 #define PA3PIN          (19)
 // ファイル名は、ロングファイルネーム形式対応
+
+void sdinit(void){
+  // SD初期化
+  if( !SD.begin(CABLESELECTPIN,8) )
+  {
+////    Serial.println("Failed : SD.begin");
+    eflg = true;
+  } else {
+////    Serial.println("OK : SD.begin");
+    eflg = false;
+  }
+////    Serial.println("START");
+}
 
 void setup(){
 ////    Serial.begin(9600);
@@ -66,16 +82,7 @@ void setup(){
 //SETSコマンドでSAVE用ファイル名を指定なくSAVEされた場合のデフォルトファイル名を設定
   strcpy(w_name,"default.cas");
 
-  // SD初期化
-  if( !SD.begin(CABLESELECTPIN,8) )
-  {
-////    Serial.println("Failed : SD.begin");
-    eflg = true;
-  } else {
-////    Serial.println("OK : SD.begin");
-    eflg = false;
-  }
-////    Serial.println("START");
+  sdinit();
 }
 
 //4BIT受信
@@ -325,10 +332,12 @@ void loadopen(void){
       flg = true;
     } else {
       snd1byte(0xf2);
+      sdinit();
       flg = false;
     }
   }else{
     snd1byte(0xf1);
+    sdinit();
     flg = false;
   }
 }
@@ -434,9 +443,13 @@ void sload(void){
       snd1byte(0x00);
     } else{
       snd1byte(0xf1);
+      sdinit();
+      r_count = 0;
     }
   } else{
     snd1byte(0xf1);
+    sdinit();
+    r_count = 0;
   }
 }
 
@@ -519,9 +532,13 @@ void sbload(void){
       }
     } else{
       snd1byte(0xf1);
+      sdinit();
+      r_count = 0;
     }
   } else{
     snd1byte(0xf1);
+    sdinit();
+    r_count = 0;
   }
 }
 
@@ -597,9 +614,11 @@ void ssave(void){
       snd1byte(0x00);
     }else{
       snd1byte(0xf1);
+      sdinit();
     }
   }else{
     snd1byte(0xf1);
+    sdinit();
   }
 }  
 
@@ -652,9 +671,11 @@ void sbsave(void){
         snd1byte(0x00);
       }else{
         snd1byte(0xf1);
+        sdinit();
       }
     }else{
       snd1byte(0xf1);
+      sdinit();
     }
   }
 }
@@ -741,6 +762,7 @@ void loop()
 ////    Serial.println("FILE LIST START");
 //状態コード送信(OK)
         snd1byte(0x00);
+        sdinit();
         dirlist();
         break;
 //42hでLOADFILEOPEN
@@ -813,5 +835,6 @@ void loop()
   } else {
 //状態コード送信(ERROR)
     snd1byte(0xF0);
+    sdinit();
   }
 }
